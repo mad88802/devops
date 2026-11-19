@@ -1,17 +1,11 @@
-# T3.2 Implement rules R1 to R8
-Branch: `T3.2-rules-r1-r8`
+# T3.3 ToCheck orchestration and Status update
+Branch: `T3.3-tocheck-orchestration`
 
-engine/rules.json : the eight rules of Appendix A.5, all `at_trigger: ToCheck`.
-
-| Rule | Under | Acting |
-|---|---|---|
-| R1 Fake_NoProfile_Salary_Fee | C.HasProfile=0, S.SalaryLevel=2, F.FeeRequested=1 | F, 95 |
-| R2 Fake_PrepaidFee | F.FeeRequested=1, F.PaymentBeforeInterview=1 | F, 90 |
-| R3 Fake_SensitiveData | K.PersonalInfoRequested=2, C.WebsiteVerified=0 | F, 90 |
-| R4 Suspicious_TooGoodToBeTrue | S.SalaryLevel>=1, K.DescriptionQuality=0, K.UrgencyLanguage>=1 | S, 65 |
-| R5 Suspicious_AnonymousContact | C.HasProfile=0, K.ContactChannel>=1 | S, 60 |
-| R6 Suspicious_BulkPosting | C.AgeYears<1, C.PostingsLast24h>20 | S, 70 |
-| R7 Suspicious_OffPlatformContact | S.SalaryHidden=1, K.ContactChannel=2, F.FeeRequested=0 | S, 55 |
-| R8 Legit_Verified | C.HasProfile=1, C.WebsiteVerified=1, S.SalaryLevel=0, F.FeeRequested=0, K.PersonalInfoRequested=0 | L, 10 |
-
-Rules are data, not code: changing a threshold needs no redeploy (file is reloaded on every check).
+POST /api/postings/<id>/check   (optional body: {"recruiter_id": n})
+1. reload rules from the repository, load the posting (404 if missing)
+2. evaluate R1..R8 through the engine
+3. rule fired  -> posting_service.set_status(status, risk_score) + INSERT classification_result, ONE transaction (rollback on error)
+4. no rule fired -> posting untouched (stays P for manual review), `updated: false`
+Response: status, risk_score, rule_id, rule_name, matched_rules, missing_indicators, message (feeds US5 result page).
+app/__init__.py : registers the check blueprint and the RuleLoadError (500) handler.
+Depends on: posting_service.set_status (T2.1), T3.1, T3.2.
