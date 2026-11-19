@@ -1,0 +1,37 @@
+{
+  "_comment": "ECA rule repository (T3.2). Rules R1-R8 of Appendix A.5. 'under' is a conjunction (all conditions must hold); 'acting' is the decision. Attributes use the names of the brief: C company, S salary, F fee, K content.",
+  "rules": [
+    {"id": "R1", "name": "Fake_NoProfile_Salary_Fee", "at_trigger": "ToCheck",
+     "under": ["C.HasProfile = 0", "S.SalaryLevel = 2", "F.FeeRequested = 1"],
+     "acting": {"status": "F", "risk_score": 95}},
+
+    {"id": "R2", "name": "Fake_PrepaidFee", "at_trigger": "ToCheck",
+     "under": ["F.FeeRequested = 1", "F.PaymentBeforeInterview = 1"],
+     "acting": {"status": "F", "risk_score": 90}},
+
+    {"id": "R3", "name": "Fake_SensitiveData", "at_trigger": "ToCheck",
+     "under": ["K.PersonalInfoRequested = 2", "C.WebsiteVerified = 0"],
+     "acting": {"status": "F", "risk_score": 90}},
+
+    {"id": "R4", "name": "Suspicious_TooGoodToBeTrue", "at_trigger": "ToCheck",
+     "under": ["S.SalaryLevel >= 1", "K.DescriptionQuality = 0", "K.UrgencyLanguage >= 1"],
+     "acting": {"status": "S", "risk_score": 65}},
+
+    {"id": "R5", "name": "Suspicious_AnonymousContact", "at_trigger": "ToCheck",
+     "under": ["C.HasProfile = 0", "K.ContactChannel >= 1"],
+     "acting": {"status": "S", "risk_score": 60}},
+
+    {"id": "R6", "name": "Suspicious_BulkPosting", "at_trigger": "ToCheck",
+     "under": ["C.AgeYears < 1", "C.PostingsLast24h > 20"],
+     "acting": {"status": "S", "risk_score": 70}},
+
+    {"id": "R7", "name": "Suspicious_OffPlatformContact", "at_trigger": "ToCheck",
+     "under": ["S.SalaryHidden = 1", "K.ContactChannel = 2", "F.FeeRequested = 0"],
+     "acting": {"status": "S", "risk_score": 55}},
+
+    {"id": "R8", "name": "Legit_Verified", "at_trigger": "ToCheck",
+     "under": ["C.HasProfile = 1", "C.WebsiteVerified = 1", "S.SalaryLevel = 0",
+               "F.FeeRequested = 0", "K.PersonalInfoRequested = 0"],
+     "acting": {"status": "L", "risk_score": 10}}
+  ]
+}
