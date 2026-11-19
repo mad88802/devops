@@ -32,7 +32,9 @@ def remove_posting(posting_id):
 
 
 # ---- T2.3 indicator getters -------------------------------------------
-
+@bp.get("/postings/<int:posting_id>/salary")
+def get_salary(posting_id):
+    return jsonify(indicator_service.get_salary(get_db(), posting_id))
 
 @bp.get("/postings/<int:posting_id>/fee")
 def get_fee(posting_id):
