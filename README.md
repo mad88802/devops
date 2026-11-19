@@ -1,12 +1,11 @@
-# T2.3 Company and indicator getter services
-Branch: `T2.3-company-indicator-getters`
+# T3.1 ECA rule engine: rule loader and evaluator
+Branch: `T3.1-eca-rule-engine`
 
-| Endpoint | Function |
-|---|---|
-| GET /api/companies/<id>          | company_service.get_company |
-| GET /api/postings/<id>/salary    | indicator_service.get_salary  (Salary_Intf) |
-| GET /api/postings/<id>/fee       | indicator_service.get_fee     (Fee_Intf) |
-| GET /api/postings/<id>/content   | indicator_service.get_content (Content_Intf) |
-
-Also company_exists() and find_indicators() (None instead of 404), used by Insert/Display and the rule engine.
-The three indicator routes live in routes/posting_routes.py (shipped in T2.1).
+- repository.py : Rule / Condition model, `parse_rules()` and `JsonRuleRepository.load()`.
+  Validates every rule at start-up (participant C/S/F/K, attribute, operator, coded value range,
+  status L/S/F, risk 0-100, unique id) and raises RuleLoadError listing all problems.
+  Only needs `load() -> list[Rule]`, so a DB-backed repository (US9) can replace it.
+- evaluator.py : `PostingContext` fetches C, S, F, K lazily through the US2 getter services (never SQL);
+  `evaluate()` returns all fired rules, decision = best one (Fake > Suspicious > Legit, then highest risk, then lowest rule number).
+  A condition on a missing indicator block is false (rule does not fire).
+Depends on: validation.py and the getter services (US2).
