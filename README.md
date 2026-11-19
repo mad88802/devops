@@ -1,11 +1,9 @@
-# T2.1 Posting service endpoints (Insert, Display, Remove)
-Branch: `T2.1-posting-service-endpoints`
+# T2.2 Validation of coded values (Appendix A.4)
+Branch: `T2.2-validation-coded-values`
 
-| Endpoint | Function (posting_service.py) |
-|---|---|
-| POST   /api/postings        | insert_posting (validate, one transaction, starts as status P / risk 0) |
-| GET    /api/postings/<id>   | display_posting (posting + company + indicators + age_days) |
-| DELETE /api/postings/<id>   | remove_posting (indicators/reports/history removed by ON DELETE CASCADE) |
-
-Uses: validation.py (T2.2), company_service / indicator_service (T2.3).
-posting_routes.py also holds the 3 indicator GET routes (T2.3).
+validation.py: validate_posting / validate_salary / validate_fee / validate_content.
+- Codes: SalaryLevel 0-2, SalaryHidden 0-1, FeeRequested 0-1, FeeType 0-3, PaymentBeforeInterview 0-1,
+  PersonalInfoRequested 0-2, UrgencyLanguage 0-2, DescriptionQuality 0-2, ContactChannel 0-2, EmploymentType 0-2.
+- Real JSON integers only (true/false and "1" rejected); all errors returned at once as HTTP 422.
+- Business rules: no fee => fee_type 0 and no prepayment; fee => fee_type 1-3; salary_min <= salary_max;
+  hidden salary => amounts/currency null; status / risk_score cannot be set by the client.
