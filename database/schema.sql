@@ -15,7 +15,7 @@ DROP TABLE IF EXISTS company;
 DROP TABLE IF EXISTS it_admin;
 
 
--- les acteurs
+-- les acteurs :
 
 CREATE TABLE it_admin (
     admin_id    INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -42,7 +42,7 @@ CREATE TABLE candidate (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 
--- companies
+-- companies :
 
 CREATE TABLE company (
     company_id         INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
