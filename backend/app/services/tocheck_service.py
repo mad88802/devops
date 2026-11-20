@@ -7,7 +7,7 @@ posting stays Pending 'P' for manual review).
 """
 from ..engine.evaluator import PostingContext, evaluate
 from ..errors import ValidationError
-from . import posting_service
+from . import escalation_service, posting_service
 
 
 def _recruiter_exists(conn, recruiter_id):
@@ -32,6 +32,12 @@ def to_check(conn, posting_id, rules, recruiter_id=None):
     decision = result.decision
 
     if decision is None:
+        try:                                    # T6.3: the recruiter handled the escalation
+            escalation_service.resolve_for_posting(conn, posting_id, recruiter_id)
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
         return {
             "posting_id": posting_id, "updated": False,
             "status": posting["status"], "risk_score": posting["risk_score"],
@@ -47,6 +53,7 @@ def to_check(conn, posting_id, rules, recruiter_id=None):
             "INSERT INTO classification_result "
             "(posting_id, recruiter_id, label, score, rule_id) VALUES (%s, %s, %s, %s, %s)",
             (posting_id, recruiter_id, decision.status, decision.risk_score, decision.id))
+        escalation_service.resolve_for_posting(conn, posting_id, recruiter_id)   # T6.3
         conn.commit()
     except Exception:
         conn.rollback()

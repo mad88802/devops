@@ -3,6 +3,7 @@ CREATE DATABASE IF NOT EXISTS jobwatch_test
 
 USE jobwatch_test;
 
+DROP TABLE IF EXISTS escalation;
 DROP TABLE IF EXISTS classification_result;
 DROP TABLE IF EXISTS report;
 DROP TABLE IF EXISTS content_indicators;
@@ -15,7 +16,7 @@ DROP TABLE IF EXISTS company;
 DROP TABLE IF EXISTS it_admin;
 
 
--- les acteurs :
+-- les acteurs
 
 CREATE TABLE it_admin (
     admin_id    INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -42,7 +43,7 @@ CREATE TABLE candidate (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 
--- companies :
+-- companies
 
 CREATE TABLE company (
     company_id         INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -147,3 +148,24 @@ CREATE TABLE classification_result (
 
 CREATE INDEX idx_posting_status  ON job_posting(status);
 CREATE INDEX idx_result_posting  ON classification_result(posting_id, decision_date);
+
+
+-- US6 / T6.3: escalation queue for recruiters (rules R9 and R10 => R.ToCheck(P))
+-- One OPEN row (resolved_at IS NULL) per posting; a recruiter's ToCheck closes it.
+
+CREATE TABLE escalation (
+    escalation_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    posting_id    INT NOT NULL,
+    rule_id       VARCHAR(10) NOT NULL,
+    priority      VARCHAR(6) NOT NULL DEFAULT 'normal' CHECK (priority IN ('normal','high')),
+    report_count  INT NOT NULL CHECK (report_count >= 0),
+    created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    resolved_at   DATETIME NULL,
+    resolved_by   INT NULL,
+    FOREIGN KEY (posting_id) REFERENCES job_posting(posting_id)
+        ON UPDATE CASCADE ON DELETE CASCADE,
+    FOREIGN KEY (resolved_by) REFERENCES recruiter(recruiter_id)
+        ON UPDATE CASCADE ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE INDEX idx_escalation_open ON escalation(resolved_at, priority);
