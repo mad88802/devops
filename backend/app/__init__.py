@@ -1,7 +1,7 @@
 """TEAM 12 - Fake Job Posting Detection : business-level web services.
 
 Each UML class becomes a service (see the ECA architecture diagram):
-Posting, Company, Salary, Fee, Content, Candidate, Report. US2 provides the Posting service
+Posting, Company, Salary, Fee, Content, Candidate, Report, plus the IT_Admin management (US8). US2 provides the Posting service
 and the getter services used later by the ECA rule engine.
 """
 import os
@@ -12,6 +12,7 @@ from werkzeug.exceptions import HTTPException
 from .db import close_connection, make_factory
 from .engine.repository import DEFAULT_RULES_PATH, JsonRuleRepository, RuleLoadError
 from .errors import ConflictError, NotFoundError, ValidationError
+from .routes.admin_company_routes import bp as admin_company_bp
 from .routes.check_routes import bp as check_bp
 from .routes.company_routes import bp as company_bp
 from .routes.escalation_routes import bp as escalation_bp
@@ -42,6 +43,7 @@ def create_app(config=None):
     app.register_blueprint(check_bp, url_prefix="/api")
     app.register_blueprint(report_bp, url_prefix="/api")
     app.register_blueprint(escalation_bp, url_prefix="/api")
+    app.register_blueprint(admin_company_bp, url_prefix="/api")
     app.teardown_appcontext(close_connection)
 
     @app.errorhandler(ValidationError)
