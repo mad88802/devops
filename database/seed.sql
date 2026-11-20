@@ -1,4 +1,4 @@
-USE jobwatch_test;
+﻿USE jobwatch_test;
 START TRANSACTION;
 
 INSERT INTO it_admin (admin_id, name, email) VALUES
