@@ -1,5 +1,5 @@
 {
-  "_comment": "ECA rule repository (T3.2). Rules R1-R8 of Appendix A.5. 'under' is a conjunction (all conditions must hold); 'acting' is the decision. Attributes use the names of the brief: C company, S salary, F fee, K content.",
+  "_comment": "ECA rule repository (T3.2). Rules R1-R8 of Appendix A.5 (at-trigger ToCheck) and R9-R10 of Appendix A.6 (at-trigger Report: P = posting, Rp = reports). 'under' is a conjunction (all conditions must hold); 'acting' is the decision. Attributes use the names of the brief: C company, S salary, F fee, K content.",
   "rules": [
     {"id": "R1", "name": "Fake_NoProfile_Salary_Fee", "at_trigger": "ToCheck",
      "under": ["C.HasProfile = 0", "S.SalaryLevel = 2", "F.FeeRequested = 1"],
@@ -32,6 +32,14 @@
     {"id": "R8", "name": "Legit_Verified", "at_trigger": "ToCheck",
      "under": ["C.HasProfile = 1", "C.WebsiteVerified = 1", "S.SalaryLevel = 0",
                "F.FeeRequested = 0", "K.PersonalInfoRequested = 0"],
-     "acting": {"status": "L", "risk_score": 10}}
+     "acting": {"status": "L", "risk_score": 10}},
+
+    {"id": "R9", "name": "Escalate_Reported_Posting", "at_trigger": "Report",
+     "under": ["Rp.CountReports >= 3", "P.Status != 'F'"],
+     "acting": {"status": "S", "escalate": "normal"}},
+
+    {"id": "R10", "name": "Raise_Risk_On_Many_Reports", "at_trigger": "Report",
+     "under": ["Rp.CountReports >= 5"],
+     "acting": {"risk_delta": 20, "escalate": "high"}}
   ]
 }
