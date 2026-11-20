@@ -13,6 +13,7 @@ from .db import close_connection, make_factory
 from .engine.repository import DEFAULT_RULES_PATH, JsonRuleRepository, RuleLoadError
 from .errors import ConflictError, NotFoundError, ValidationError
 from .routes.admin_company_routes import bp as admin_company_bp
+from .routes.admin_recruiter_routes import bp as admin_recruiter_bp
 from .routes.check_routes import bp as check_bp
 from .routes.company_routes import bp as company_bp
 from .routes.escalation_routes import bp as escalation_bp
@@ -44,6 +45,7 @@ def create_app(config=None):
     app.register_blueprint(report_bp, url_prefix="/api")
     app.register_blueprint(escalation_bp, url_prefix="/api")
     app.register_blueprint(admin_company_bp, url_prefix="/api")
+    app.register_blueprint(admin_recruiter_bp, url_prefix="/api")
     app.teardown_appcontext(close_connection)
 
     @app.errorhandler(ValidationError)
