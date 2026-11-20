@@ -1,0 +1,1037 @@
+/**
+ * Bilingual interface text (EN / FR).
+ *
+ * Key prefixes by task (both `en` and `fr` dictionaries):
+ *   T4.1 / T4.2 / T4.3 .. field.*, group.*, opt.*, form.*, error.*
+ *   T5.1 / T5.2 / T5.3 .. detail.*, rule.*, risk.*, status.*
+ *   T7.1 / T7.2 ......... inbox.*, common.search/all
+ *   T7.3 ................ report.*, browse.report/reported
+ *   T10.2 / T10.3 ....... dash.*
+ *
+ * One flat dictionary per language. Missing French keys fall back to English so
+ * a half-translated build never shows a raw key. Dates and numbers are formatted
+ * with the active locale, not hard-coded.
+ */
+import {
+  Fragment,
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react'
+
+const en = {
+  /* app */
+  'app.name': 'Verdict',
+  'app.tagline': 'Job posting screening',
+
+  /* navigation */
+  'nav.group.screening': 'Screening',
+  'nav.group.workspace': 'Workspace',
+  'nav.group.admin': 'Administration',
+  'nav.inbox': 'Inbox',
+  'nav.dashboard': 'Dashboard',
+  'nav.newPosting': 'New posting',
+  'nav.browse': 'Browse postings',
+  'nav.companies': 'Companies',
+  'nav.recruiters': 'Recruiters',
+  'nav.rules': 'Rule repository',
+
+  /* top bar */
+  'topbar.demo': 'Demo data',
+  'topbar.reset': 'Reset demo data',
+  'topbar.resetTitle': 'Reset the demo data?',
+  'topbar.resetBody':
+    'This restores the seeded postings, reports and companies. Every change you made is lost.',
+  'topbar.resetDone': 'Demo data restored',
+  'topbar.signOut': 'Sign out',
+  'topbar.language': 'Language',
+
+  /* common */
+  'common.search': 'Search',
+  'common.save': 'Save changes',
+  'common.cancel': 'Cancel',
+  'common.delete': 'Delete',
+  'common.remove': 'Remove',
+  'common.edit': 'Edit',
+  'common.create': 'Create',
+  'common.add': 'Add',
+  'common.close': 'Close',
+  'common.confirm': 'Confirm',
+  'common.loading': 'Loading',
+  'common.back': 'Back',
+  'common.all': 'All',
+  'common.name': 'Name',
+  'common.surname': 'Surname',
+  'common.email': 'Email',
+  'common.role': 'Role',
+  'common.actions': 'Actions',
+  'common.status': 'Status',
+  'common.risk': 'Risk',
+  'common.company': 'Company',
+  'common.location': 'Location',
+  'common.posted': 'Posted',
+  'common.reports': 'Reports',
+  'common.report': 'Report',
+  'common.view': 'View',
+  'common.open': 'Open',
+  'common.refresh': 'Refresh',
+  'common.retry': 'Try again',
+  'common.optional': 'optional',
+  'common.required': 'required',
+  'common.page': 'Page {page} of {pages}',
+  'common.showing': '{from}–{to} of {total}',
+  'common.prev': 'Previous',
+  'common.next': 'Next',
+  'common.saving': 'Saving',
+  'common.total': 'Total',
+  'common.none': 'None',
+  'common.daysAgo': '{count} d ago',
+  'common.today': 'Today',
+  'common.of': 'of',
+  'common.notFound': 'Not found',
+
+  /* status */
+  'status.P': 'Pending',
+  'status.S': 'Suspicious',
+  'status.L': 'Legit',
+  'status.F': 'Fake',
+  'status.P.hint': 'No rule fired. A recruiter has to review it.',
+  'status.S.hint': 'Indicators are typical of a scam posting.',
+  'status.L.hint': 'Indicators match a genuine employer.',
+  'status.F.hint': 'Indicators match a known fraud pattern.',
+
+  /* risk */
+  'risk.low': 'Low',
+  'risk.watch': 'Watch',
+  'risk.elevated': 'Elevated',
+  'risk.critical': 'Critical',
+  'risk.score': 'Risk score',
+  'risk.outOf': '0 to 100',
+
+  /* authentication */
+  'auth.lede': 'Every posting gets a verdict, and a reason you can read.',
+  'auth.sub':
+    'Verdict screens job postings against twelve decision rules. Recruiters check them, candidates report them, IT admins keep the blacklist.',
+  'auth.as.recruiter': 'Recruiter',
+  'auth.as.recruiterDesc': 'Check postings and classify them',
+  'auth.as.candidate': 'Candidate',
+  'auth.as.candidateDesc': 'Search postings and report scams',
+  'auth.as.admin': 'IT admin',
+  'auth.as.adminDesc': 'Manage companies, recruiters and the blacklist',
+  'auth.demoNote': 'Demo build. Signing in picks a seeded account from the {api} service.',
+  'auth.specimenTitle': 'The decision, written down',
+  'auth.specimenSub': 'Three of the twelve rules, as stored in the ecaRule table.',
+  'auth.specimenFoot':
+    'The engine evaluates R1–R8 by precedence: fake first, then suspicious, then legit. If none match, the posting stays pending for manual review.',
+
+  /* recruiter inbox */
+  'inbox.title': 'Screening inbox',
+  'inbox.sub': 'Postings waiting for a decision, and everything checked recently.',
+  'inbox.searchPlaceholder': 'Search title, company or location',
+  'inbox.filter.status': 'Status',
+  'inbox.filter.allStatuses': 'All statuses',
+  'inbox.filter.sort': 'Sort',
+  'inbox.sort.recent': 'Newest first',
+  'inbox.sort.risk': 'Highest risk',
+  'inbox.sort.reported': 'Most reported',
+  'inbox.sort.title': 'Title A–Z',
+  'inbox.empty.title': 'No postings match these filters',
+  'inbox.empty.hint': 'Clear the filters, or add a posting to the platform.',
+  'inbox.col.posting': 'Posting',
+  'inbox.col.company': 'Company',
+  'inbox.col.status': 'Status',
+  'inbox.col.risk': 'Risk',
+  'inbox.col.reports': 'Reports',
+  'inbox.col.posted': 'Posted',
+  'inbox.check': 'Check',
+  'inbox.pendingBanner': '{count} postings are waiting for a first decision.',
+  'inbox.showQueue': 'Show only the queue',
+  'inbox.showAll': 'Show every posting',
+
+  /* posting form */
+  'form.title': 'New posting',
+  'form.sub':
+    'Describe the posting and its indicators. The rule preview updates as you type; the server re-checks on save.',
+  'form.companyHint': 'Pick an existing company, or create one by filling in its profile.',
+  'form.newCompany': 'New company',
+  'form.existingCompany': 'Existing company',
+  'form.saveDraft': 'Save as pending',
+  'form.saveAndCheck': 'Save and check',
+  'form.preview.title': 'Rule preview',
+  'form.preview.note': 'Preview only. On save the server evaluates R1–R8 and stores the result.',
+  'form.preview.nofire': 'No rule matches yet. The posting would stay pending.',
+  'form.preview.matches': '{count} matching',
+  'form.preview.winner': 'First match decides',
+  'form.preview.expected': 'Expected verdict',
+  'form.errors': '{count} fields need attention',
+  'form.created': 'Posting created',
+  'form.createdBody': '{title} was saved and checked.',
+  'form.draft': 'Posting saved as pending',
+  'form.draftBody': 'No rule fired, so a recruiter has to review it.',
+
+  /* fields */
+  'field.posting.title': 'Job title',
+  'field.posting.location': 'Location',
+  'field.posting.employmentType': 'Employment type',
+  'field.posting.postedDate': 'Posted date',
+  'field.posting.description': 'Description',
+  'field.company.name': 'Company name',
+  'field.company.country': 'Country',
+  'field.company.industry': 'Industry',
+  'field.company.ageYears': 'Company age (years)',
+  'field.company.hasProfile': 'Company profile',
+  'field.company.websiteVerified': 'Website',
+  'field.company.postingsLast24h': 'Postings in the last 24h',
+  'field.company.fakePostingsCount': 'Fake postings so far',
+  'field.company.blacklisted': 'Blacklist',
+  'field.salary.salaryMin': 'Salary minimum',
+  'field.salary.salaryMax': 'Salary maximum',
+  'field.salary.currency': 'Currency',
+  'field.salary.salaryLevel': 'Salary level',
+  'field.salary.salaryHidden': 'Salary visibility',
+  'field.fee.feeRequested': 'Fee requested',
+  'field.fee.feeType': 'Fee type',
+  'field.fee.paymentBeforeInterview': 'Payment timing',
+  'field.content.personalInfoRequested': 'Personal data requested',
+  'field.content.urgencyLanguage': 'Urgency language',
+  'field.content.descriptionQuality': 'Description quality',
+  'field.content.contactChannel': 'Contact channel',
+  'field.posting.status': 'Status',
+  'field.reports.count': 'Candidate reports',
+
+  /* coded option labels */
+  'opt.company.hasProfile.0': 'No profile',
+  'opt.company.hasProfile.1': 'Has a profile',
+  'opt.company.websiteVerified.0': 'Not verified',
+  'opt.company.websiteVerified.1': 'Verified',
+  'opt.company.blacklisted.0': 'Not blacklisted',
+  'opt.company.blacklisted.1': 'Blacklisted',
+  'opt.employmentType.0': 'Full-time',
+  'opt.employmentType.1': 'Part-time',
+  'opt.employmentType.2': 'Contract',
+  'opt.salary.salaryLevel.0': 'Realistic',
+  'opt.salary.salaryLevel.1': 'High',
+  'opt.salary.salaryLevel.2': 'Unrealistic',
+  'opt.salary.salaryHidden.0': 'Displayed',
+  'opt.salary.salaryHidden.1': 'Hidden',
+  'opt.fee.feeRequested.0': 'No fee',
+  'opt.fee.feeRequested.1': 'Fee requested',
+  'opt.fee.feeType.0': 'None',
+  'opt.fee.feeType.1': 'Training',
+  'opt.fee.feeType.2': 'Registration',
+  'opt.fee.feeType.3': 'Equipment or visa',
+  'opt.fee.paymentBeforeInterview.0': 'After interview',
+  'opt.fee.paymentBeforeInterview.1': 'Before interview',
+  'opt.content.personalInfoRequested.0': 'Nothing personal',
+  'opt.content.personalInfoRequested.1': 'CV or ID copy',
+  'opt.content.personalInfoRequested.2': 'Bank or card details',
+  'opt.content.urgencyLanguage.0': 'None',
+  'opt.content.urgencyLanguage.1': 'Some pressure',
+  'opt.content.urgencyLanguage.2': 'Aggressive',
+  'opt.content.descriptionQuality.0': 'Poor or vague',
+  'opt.content.descriptionQuality.1': 'Average',
+  'opt.content.descriptionQuality.2': 'Detailed',
+  'opt.content.contactChannel.0': 'Corporate email',
+  'opt.content.contactChannel.1': 'Free webmail',
+  'opt.content.contactChannel.2': 'Messaging app only',
+
+  /* help */
+  'help.company.fakePostingsCount': 'Counted automatically from classified postings.',
+  'help.salary.salaryHidden': 'A hidden salary clears the amounts and the currency.',
+
+  /* indicator groups */
+  'group.posting': 'Posting',
+  'group.posting.note': 'What the candidate sees.',
+  'group.company': 'Company',
+  'group.company.note': 'Who is hiring.',
+  'group.salary': 'Salary indicators',
+  'group.salary.note': '0 realistic, 1 high, 2 unrealistic.',
+  'group.fee': 'Fee indicators',
+  'group.fee.note': 'Money the candidate has to pay.',
+  'group.content': 'Content indicators',
+  'group.content.note': 'How the posting behaves.',
+
+  /* case file */
+  'detail.verdict': 'Verdict',
+  'detail.firedRule': 'Fired rule',
+  'detail.noRule': 'No rule fired',
+  'detail.noRuleBody': 'The posting keeps its status and waits for a manual decision.',
+  'detail.conditions': 'Conditions',
+  'detail.actions': 'Actions',
+  'detail.priority': 'Precedence',
+  'detail.checkedAt': 'Checked',
+  'detail.checkedBy': 'Checked by',
+  'detail.recheck': 'Re-check',
+  'detail.rechecking': 'Checking',
+  'detail.adjudicate': 'Decide manually',
+  'detail.tab.indicators': 'Indicators',
+  'detail.tab.rules': 'All rules',
+  'detail.tab.history': 'History',
+  'detail.tab.reports': 'Reports',
+  'detail.history.empty': 'No decision recorded yet.',
+  'detail.reports.empty': 'No candidate has reported this posting.',
+  'detail.reports.count': '{count} reports from candidates',
+  'detail.explanation': 'Why this verdict',
+  'detail.action.status': 'Status → {value}',
+  'detail.action.risk': 'Risk → {value}',
+  'detail.action.recheck': 'Re-run the check',
+  'detail.action.riskAdd': 'Risk + {value}',
+  'detail.action.blacklist': 'Blacklist the company',
+  'detail.matched': 'Matched',
+  'detail.notMatched': 'Not matched',
+  'detail.company': 'Employer',
+  'detail.indicatorNote': 'Each value as stored, with its coded meaning.',
+  'detail.description': 'Description',
+  'detail.blacklistedCompany':
+    'This company is blacklisted. New postings from it are rejected on insertion (R12).',
+  'detail.notFound': 'Posting not found',
+  'detail.notFoundHint': 'It may have been deleted.',
+  'detail.reports.by': 'Reported by {name}',
+  'detail.blacklistEligible': 'Fake postings so far: {count}',
+
+  /* manual decision */
+  'override.title': 'Decide manually',
+  'override.sub': 'Overrides the rule engine. The decision is recorded with your name and reason.',
+  'override.status': 'New status',
+  'override.reason': 'Reason',
+  'override.reasonPlaceholder': 'Why does this posting deserve a different verdict?',
+  'override.submit': 'Record decision',
+  'override.done': 'Decision recorded',
+
+  /* reporting */
+  'report.title': 'Report this posting',
+  'report.sub':
+    'Three reports move a posting to suspicious (R9). Five also raise its risk score by twenty (R10).',
+  'report.reason': 'What is wrong with it?',
+  'report.submit': 'Send report',
+  'report.done': 'Report sent',
+  'report.doneBody': '{count} reports on this posting. {effect}',
+  'report.effectR9': 'It has been escalated to suspicious.',
+  'report.effectR10': 'Its risk score went up by twenty.',
+  'report.effectNone': 'Recruiters will review it.',
+
+  'reason.1': 'It asks for a payment',
+  'reason.2': 'The salary looks too good to be true',
+  'reason.3': 'It asks for bank or identity details',
+  'reason.4': 'The company looks fake',
+
+  /* candidate browse */
+  'browse.title': 'Browse postings',
+  'browse.sub': 'Every posting with its screening verdict and risk score.',
+  'browse.intro':
+    'Statuses come from the recruiter’s rule engine. A suspicious or fake badge means the posting matched a fraud pattern.',
+  'browse.search': 'Search title, company or location',
+  'browse.empty.title': 'No postings match',
+  'browse.empty.hint': 'Try a different search, or clear the status filters.',
+  'browse.salaryHidden': 'Salary not disclosed',
+  'browse.report': 'Report',
+  'browse.reported': 'Reported',
+  'browse.detail': 'View posting',
+  'browse.disclaimer': 'Never pay a fee to get a job. Report postings that ask for one.',
+
+  /* candidate posting view */
+  'view.about': 'About this posting',
+  'view.salary': 'Salary',
+  'view.type': 'Employment type',
+
+  /* admin companies */
+  'admin.companies.title': 'Companies',
+  'admin.companies.sub': 'Create, edit and remove companies, and manage the blacklist.',
+  'admin.companies.add': 'Add company',
+  'admin.companies.edit': 'Edit company',
+  'admin.companies.new': 'New company',
+  'admin.companies.check': 'Run R11 check',
+  'admin.companies.checkFired': 'Blacklisted',
+  'admin.companies.checkFiredBody': 'Three or more fake postings. R11 blacklisted the company.',
+  'admin.companies.checkClean': 'No blacklist',
+  'admin.companies.checkCleanBody': 'Fewer than three fake postings. R11 did not fire.',
+  'admin.companies.blacklist': 'Blacklist',
+  'admin.companies.unblacklist': 'Remove from blacklist',
+  'admin.companies.eligible': 'Blacklist eligible',
+  'admin.companies.deleteTitle': 'Delete {name}?',
+  'admin.companies.deleteBody':
+    'This company has {count} postings. Deleting it also deletes them, with their reports and decision history.',
+  'admin.companies.deleteEmpty': 'This cannot be undone.',
+  'admin.companies.deleted': 'Company deleted',
+  'admin.companies.saved': 'Company saved',
+  'admin.companies.postings': 'Postings',
+  'admin.companies.fake': 'Fake',
+  'admin.companies.age': 'Age',
+  'admin.companies.profile': 'Profile',
+  'admin.companies.website': 'Website',
+  'admin.companies.empty.title': 'No companies yet',
+  'admin.companies.empty.hint': 'Add the first company to get started.',
+  'admin.companies.deleteAnyway': 'Delete anyway',
+
+  /* admin recruiters */
+  'admin.recruiters.title': 'Recruiters',
+  'admin.recruiters.sub': 'The domain experts who check postings.',
+  'admin.recruiters.add': 'Add recruiter',
+  'admin.recruiters.edit': 'Edit recruiter',
+  'admin.recruiters.deleteTitle': 'Delete {name}?',
+  'admin.recruiters.deleteBody': 'Their past decisions stay in the classification history.',
+  'admin.recruiters.saved': 'Recruiter saved',
+  'admin.recruiters.deleted': 'Recruiter deleted',
+
+  'role.R': 'Recruiter',
+  'role.P': 'Pending approval',
+  'role.S': 'Supervisor',
+
+  /* rule repository */
+  'admin.rules.title': 'Rule repository',
+  'admin.rules.sub':
+    'The twelve ECA rules as stored in the ecaRule table. Rules are data: they can change without a redeploy.',
+  'admin.rules.priority': 'Precedence',
+  'admin.rules.trigger': 'Trigger',
+  'admin.rules.participant': 'Participant',
+  'admin.rules.group': 'Group',
+  'admin.rules.enabled': 'Enabled',
+  'admin.rules.conditions': 'Conditions',
+  'admin.rules.actions': 'Actions',
+  'admin.rules.count': '{count} rules',
+  'admin.rules.note':
+    'The engine evaluates the recruiter rules in precedence order and stops at the first match. Candidate and admin rules run on their own triggers.',
+
+  'rule.R1.summary': 'No company profile, unrealistic salary, and a fee is requested.',
+  'rule.R2.summary': 'A fee is requested before the interview.',
+  'rule.R3.summary': 'Bank or card details are requested and the website is not verified.',
+  'rule.R4.summary': 'High salary, vague description, urgent tone.',
+  'rule.R5.summary': 'No company profile and only a free or messaging contact channel.',
+  'rule.R6.summary': 'The company is under a year old and posted more than twenty jobs in a day.',
+  'rule.R7.summary': 'The salary is hidden and contact is messaging-app only.',
+  'rule.R8.summary': 'Verified company, realistic salary, no fee, no personal data requested.',
+  'rule.R9.summary': 'Three candidate reports escalate the posting to suspicious.',
+  'rule.R10.summary': 'Five reports add twenty points and ask for a priority re-check.',
+  'rule.R11.summary': 'Three or more fake postings blacklist the company.',
+  'rule.R12.summary': 'A posting from a blacklisted company is rejected on insertion.',
+
+  /* dashboard */
+  'dash.title': 'Dashboard',
+  'dash.sub': 'Share of fake postings per week and per company.',
+  'dash.filter.company': 'Company',
+  'dash.filter.allCompanies': 'All companies',
+  'dash.filter.period': 'Period',
+  'dash.filter.lastWeeks': 'Last {count} weeks',
+  'dash.filter.clear': 'Clear filters',
+  'dash.kpi.postings': 'Postings',
+  'dash.kpi.postingsFoot': 'across {count} companies',
+  'dash.kpi.fakeShare': 'Fake share',
+  'dash.kpi.fakeShareFoot': '{count} fake postings',
+  'dash.kpi.pending': 'Awaiting a decision',
+  'dash.kpi.pendingFoot': '{count} suspicious under review',
+  'dash.kpi.reports': 'Reports this week',
+  'dash.kpi.reportsFoot': '{count} decisions recorded',
+  'dash.weekly.title': 'Postings per week',
+  'dash.weekly.sub': 'Last {count} weeks, by verdict',
+  'dash.company.title': 'Fake share per company',
+  'dash.company.selected': 'Fake share for {company}',
+  'dash.company.sub': 'Companies with at least one posting',
+  'dash.rules.title': 'Rules that fired',
+  'dash.rules.sub': 'Decisions recorded per rule',
+  'dash.activity.title': 'Recent decisions',
+  'dash.activity.sub': 'Latest classifications across the platform',
+  'dash.activity.subFiltered': 'Latest classifications in this selection',
+  'dash.activity.empty': 'No decisions recorded yet.',
+  'dash.legend.fake': 'Fake',
+  'dash.legend.suspicious': 'Suspicious',
+  'dash.legend.legit': 'Legit',
+  'dash.legend.pending': 'Pending',
+  'dash.noData': 'No postings in this period.',
+  'dash.tableView': 'Table',
+  'dash.chartView': 'Chart',
+  'dash.week': 'Week',
+  'dash.share': 'Share',
+  'dash.readout': '{fake} fake of {total} postings',
+  'dash.rules.rule': 'Rule',
+  'dash.rules.count': 'Decisions',
+  'dash.company.meta': '{fake} fake of {total}',
+
+  /* errors */
+  'error.required': 'This field is required.',
+  'error.coded': 'Choose one of the coded values.',
+  'error.number': 'Enter a number.',
+  'error.min': 'Below the minimum.',
+  'error.max': 'Above the maximum.',
+  'error.maxLength': 'Too long.',
+  'error.date': 'Use the format YYYY-MM-DD.',
+  'error.email': 'Enter a valid email address.',
+  'error.salaryRange': 'The maximum must be at least the minimum.',
+  'error.companyHasPostings': 'This company still has postings. Remove them first.',
+  'error.notFound': 'Not found.',
+  'error.validation': 'Some fields need attention.',
+  'error.server': 'The server hit an error.',
+  'error.postingNotFound': 'That posting does not exist.',
+  'error.candidateNotFound': 'That candidate does not exist.',
+  'error.routeNotFound': 'No such endpoint.',
+  'error.body': 'The request body is missing.',
+  'error.role': 'Unknown role.',
+  'error.network': 'Cannot reach the API. Is the mock server running?',
+
+  'misc.rules': 'rules',
+
+  /* toasts */
+  'toast.checked': 'Rule {rule} fired',
+  'toast.checkedBody': '{status}, risk {score}.',
+  'toast.noRule': 'No rule fired',
+  'toast.noRuleBody': 'The posting stays {status} for manual review.',
+  'toast.deleted': 'Deleted',
+  'toast.saved': 'Saved',
+  'toast.error': 'Something went wrong',
+  'toast.reset': 'Demo data restored',
+  'toast.reported': 'Report sent',
+  'toast.blacklisted': 'Company blacklisted',
+  'toast.unblacklisted': 'Company removed from the blacklist',
+}
+
+const fr = {
+  'app.name': 'Verdict',
+  'app.tagline': 'Vérification des annonces',
+
+  'nav.group.screening': 'Vérification',
+  'nav.group.workspace': 'Espace de travail',
+  'nav.group.admin': 'Administration',
+  'nav.inbox': 'File de vérification',
+  'nav.dashboard': 'Tableau de bord',
+  'nav.newPosting': 'Nouvelle annonce',
+  'nav.browse': 'Parcourir les annonces',
+  'nav.companies': 'Entreprises',
+  'nav.recruiters': 'Recruteurs',
+  'nav.rules': 'Référentiel de règles',
+
+  'topbar.demo': 'Données de démo',
+  'topbar.reset': 'Réinitialiser les données',
+  'topbar.resetTitle': 'Réinitialiser les données de démonstration ?',
+  'topbar.resetBody':
+    'Les annonces, signalements et entreprises de départ seront restaurés. Toutes vos modifications seront perdues.',
+  'topbar.resetDone': 'Données de démonstration restaurées',
+  'topbar.signOut': 'Se déconnecter',
+  'topbar.language': 'Langue',
+
+  'common.search': 'Rechercher',
+  'common.save': 'Enregistrer',
+  'common.cancel': 'Annuler',
+  'common.delete': 'Supprimer',
+  'common.remove': 'Retirer',
+  'common.edit': 'Modifier',
+  'common.create': 'Créer',
+  'common.add': 'Ajouter',
+  'common.close': 'Fermer',
+  'common.confirm': 'Confirmer',
+  'common.loading': 'Chargement',
+  'common.back': 'Retour',
+  'common.all': 'Toutes',
+  'common.name': 'Prénom',
+  'common.surname': 'Nom',
+  'common.email': 'Courriel',
+  'common.role': 'Rôle',
+  'common.actions': 'Actions',
+  'common.status': 'Statut',
+  'common.risk': 'Risque',
+  'common.company': 'Entreprise',
+  'common.location': 'Lieu',
+  'common.posted': 'Publiée',
+  'common.reports': 'Signalements',
+  'common.report': 'Signaler',
+  'common.view': 'Voir',
+  'common.open': 'Ouvrir',
+  'common.refresh': 'Actualiser',
+  'common.retry': 'Réessayer',
+  'common.optional': 'facultatif',
+  'common.required': 'obligatoire',
+  'common.page': 'Page {page} sur {pages}',
+  'common.showing': '{from}–{to} sur {total}',
+  'common.prev': 'Précédent',
+  'common.next': 'Suivant',
+  'common.saving': 'Enregistrement',
+  'common.total': 'Total',
+  'common.none': 'Aucun',
+  'common.daysAgo': 'il y a {count} j',
+  'common.today': "Aujourd'hui",
+  'common.of': 'sur',
+  'common.notFound': 'Introuvable',
+
+  'status.P': 'En attente',
+  'status.S': 'Suspecte',
+  'status.L': 'Légitime',
+  'status.F': 'Fausse',
+  'status.P.hint': 'Aucune règle déclenchée. Un recruteur doit vérifier.',
+  'status.S.hint': 'Les indicateurs correspondent à une arnaque.',
+  'status.L.hint': 'Les indicateurs correspondent à un employeur réel.',
+  'status.F.hint': 'Les indicateurs correspondent à une fraude connue.',
+
+  'risk.low': 'Faible',
+  'risk.watch': 'À surveiller',
+  'risk.elevated': 'Élevé',
+  'risk.critical': 'Critique',
+  'risk.score': 'Score de risque',
+  'risk.outOf': 'de 0 à 100',
+
+  'auth.lede': 'Chaque annonce reçoit un verdict, et une raison lisible.',
+  'auth.sub':
+    'Verdict confronte les annonces à douze règles de décision. Les recruteurs les vérifient, les candidats les signalent, les administrateurs tiennent la liste noire.',
+  'auth.as.recruiter': 'Recruteur',
+  'auth.as.recruiterDesc': 'Vérifier et classer les annonces',
+  'auth.as.candidate': 'Candidat',
+  'auth.as.candidateDesc': 'Chercher des annonces et signaler les arnaques',
+  'auth.as.admin': 'Administrateur',
+  'auth.as.adminDesc': 'Gérer les entreprises, les recruteurs et la liste noire',
+  'auth.demoNote':
+    'Version de démonstration. La connexion choisit un compte de démonstration du service {api}.',
+  'auth.specimenTitle': 'La décision, écrite noir sur blanc',
+  'auth.specimenSub': 'Trois des douze règles, telles que stockées dans la table ecaRule.',
+  'auth.specimenFoot':
+    'Le moteur évalue R1 à R8 par ordre de priorité : fausse, puis suspecte, puis légitime. Si aucune ne correspond, l’annonce reste en attente de vérification.',
+
+  'inbox.title': 'File de vérification',
+  'inbox.sub': 'Annonces en attente de décision, et tout ce qui a été vérifié récemment.',
+  'inbox.searchPlaceholder': 'Rechercher un titre, une entreprise ou un lieu',
+  'inbox.filter.status': 'Statut',
+  'inbox.filter.allStatuses': 'Tous les statuts',
+  'inbox.filter.sort': 'Trier',
+  'inbox.sort.recent': 'Plus récentes',
+  'inbox.sort.risk': 'Risque le plus élevé',
+  'inbox.sort.reported': 'Les plus signalées',
+  'inbox.sort.title': 'Titre A–Z',
+  'inbox.empty.title': 'Aucune annonce avec ces filtres',
+  'inbox.empty.hint': 'Effacez les filtres, ou ajoutez une annonce.',
+  'inbox.col.posting': 'Annonce',
+  'inbox.col.company': 'Entreprise',
+  'inbox.col.status': 'Statut',
+  'inbox.col.risk': 'Risque',
+  'inbox.col.reports': 'Signalements',
+  'inbox.col.posted': 'Publiée',
+  'inbox.check': 'Vérifier',
+  'inbox.pendingBanner': '{count} annonces attendent une première décision.',
+  'inbox.showQueue': 'Afficher seulement la file',
+  'inbox.showAll': 'Afficher toutes les annonces',
+
+  'form.title': 'Nouvelle annonce',
+  'form.sub':
+    'Décrivez l’annonce et ses indicateurs. L’aperçu des règles se met à jour pendant la saisie ; le serveur revérifie à l’enregistrement.',
+  'form.companyHint':
+    'Choisissez une entreprise existante, ou créez-en une en renseignant son profil.',
+  'form.newCompany': 'Nouvelle entreprise',
+  'form.existingCompany': 'Entreprise existante',
+  'form.saveDraft': 'Enregistrer en attente',
+  'form.saveAndCheck': 'Enregistrer et vérifier',
+  'form.preview.title': 'Aperçu des règles',
+  'form.preview.note':
+    'Aperçu uniquement. À l’enregistrement, le serveur évalue R1 à R8 et conserve le résultat.',
+  'form.preview.nofire': 'Aucune règle ne correspond. L’annonce resterait en attente.',
+  'form.preview.matches': '{count} correspondances',
+  'form.preview.winner': 'La première correspondance décide',
+  'form.preview.expected': 'Verdict attendu',
+  'form.errors': '{count} champs à corriger',
+  'form.created': 'Annonce créée',
+  'form.createdBody': '{title} a été enregistrée et vérifiée.',
+  'form.draft': 'Annonce enregistrée en attente',
+  'form.draftBody': 'Aucune règle déclenchée : un recruteur doit la vérifier.',
+
+  'field.posting.title': 'Intitulé du poste',
+  'field.posting.location': 'Lieu',
+  'field.posting.employmentType': 'Type de contrat',
+  'field.posting.postedDate': 'Date de publication',
+  'field.posting.description': 'Description',
+  'field.company.name': 'Nom de l’entreprise',
+  'field.company.country': 'Pays',
+  'field.company.industry': 'Secteur',
+  'field.company.ageYears': 'Ancienneté (années)',
+  'field.company.hasProfile': 'Profil de l’entreprise',
+  'field.company.websiteVerified': 'Site web',
+  'field.company.postingsLast24h': 'Annonces sur 24 h',
+  'field.company.fakePostingsCount': 'Annonces fausses à ce jour',
+  'field.company.blacklisted': 'Liste noire',
+  'field.salary.salaryMin': 'Salaire minimum',
+  'field.salary.salaryMax': 'Salaire maximum',
+  'field.salary.currency': 'Devise',
+  'field.salary.salaryLevel': 'Niveau de salaire',
+  'field.salary.salaryHidden': 'Visibilité du salaire',
+  'field.fee.feeRequested': 'Frais demandés',
+  'field.fee.feeType': 'Type de frais',
+  'field.fee.paymentBeforeInterview': 'Moment du paiement',
+  'field.content.personalInfoRequested': 'Données personnelles demandées',
+  'field.content.urgencyLanguage': 'Langage d’urgence',
+  'field.content.descriptionQuality': 'Qualité de la description',
+  'field.content.contactChannel': 'Canal de contact',
+  'field.posting.status': 'Statut',
+  'field.reports.count': 'Signalements de candidats',
+
+  'opt.company.hasProfile.0': 'Aucun profil',
+  'opt.company.hasProfile.1': 'Profil existant',
+  'opt.company.websiteVerified.0': 'Non vérifié',
+  'opt.company.websiteVerified.1': 'Vérifié',
+  'opt.company.blacklisted.0': 'Non blacklistée',
+  'opt.company.blacklisted.1': 'Blacklistée',
+  'opt.employmentType.0': 'Temps plein',
+  'opt.employmentType.1': 'Temps partiel',
+  'opt.employmentType.2': 'Contrat',
+  'opt.salary.salaryLevel.0': 'Réaliste',
+  'opt.salary.salaryLevel.1': 'Élevé',
+  'opt.salary.salaryLevel.2': 'Irréaliste',
+  'opt.salary.salaryHidden.0': 'Affiché',
+  'opt.salary.salaryHidden.1': 'Masqué',
+  'opt.fee.feeRequested.0': 'Aucun frais',
+  'opt.fee.feeRequested.1': 'Frais demandés',
+  'opt.fee.feeType.0': 'Aucun',
+  'opt.fee.feeType.1': 'Formation',
+  'opt.fee.feeType.2': 'Inscription',
+  'opt.fee.feeType.3': 'Matériel ou visa',
+  'opt.fee.paymentBeforeInterview.0': 'Après entretien',
+  'opt.fee.paymentBeforeInterview.1': 'Avant entretien',
+  'opt.content.personalInfoRequested.0': 'Aucune donnée',
+  'opt.content.personalInfoRequested.1': 'CV ou pièce d’identité',
+  'opt.content.personalInfoRequested.2': 'Données bancaires',
+  'opt.content.urgencyLanguage.0': 'Aucun',
+  'opt.content.urgencyLanguage.1': 'Légère pression',
+  'opt.content.urgencyLanguage.2': 'Agressif',
+  'opt.content.descriptionQuality.0': 'Faible ou vague',
+  'opt.content.descriptionQuality.1': 'Moyenne',
+  'opt.content.descriptionQuality.2': 'Détaillée',
+  'opt.content.contactChannel.0': 'Courriel d’entreprise',
+  'opt.content.contactChannel.1': 'Messagerie gratuite',
+  'opt.content.contactChannel.2': 'Application de messagerie',
+
+  'help.company.fakePostingsCount': 'Calculé automatiquement à partir des annonces classées.',
+  'help.salary.salaryHidden': 'Un salaire masqué efface les montants et la devise.',
+
+  'group.posting': 'Annonce',
+  'group.posting.note': 'Ce que voit le candidat.',
+  'group.company': 'Entreprise',
+  'group.company.note': 'Qui recrute.',
+  'group.salary': 'Indicateurs de salaire',
+  'group.salary.note': '0 réaliste, 1 élevé, 2 irréaliste.',
+  'group.fee': 'Indicateurs de frais',
+  'group.fee.note': 'Somme que le candidat doit payer.',
+  'group.content': 'Indicateurs de contenu',
+  'group.content.note': 'Comportement de l’annonce.',
+
+  'detail.verdict': 'Verdict',
+  'detail.firedRule': 'Règle déclenchée',
+  'detail.noRule': 'Aucune règle déclenchée',
+  'detail.noRuleBody':
+    'L’annonce conserve son statut et attend une décision manuelle.',
+  'detail.conditions': 'Conditions',
+  'detail.actions': 'Actions',
+  'detail.priority': 'Priorité',
+  'detail.checkedAt': 'Vérifiée',
+  'detail.checkedBy': 'Vérifiée par',
+  'detail.recheck': 'Revérifier',
+  'detail.rechecking': 'Vérification',
+  'detail.adjudicate': 'Décider manuellement',
+  'detail.tab.indicators': 'Indicateurs',
+  'detail.tab.rules': 'Toutes les règles',
+  'detail.tab.history': 'Historique',
+  'detail.tab.reports': 'Signalements',
+  'detail.history.empty': 'Aucune décision enregistrée.',
+  'detail.reports.empty': 'Aucun candidat n’a signalé cette annonce.',
+  'detail.reports.count': '{count} signalements de candidats',
+  'detail.explanation': 'Pourquoi ce verdict',
+  'detail.action.status': 'Statut → {value}',
+  'detail.action.risk': 'Risque → {value}',
+  'detail.action.recheck': 'Relancer la vérification',
+  'detail.action.riskAdd': 'Risque + {value}',
+  'detail.action.blacklist': 'Blacklister l’entreprise',
+  'detail.matched': 'Correspond',
+  'detail.notMatched': 'Ne correspond pas',
+  'detail.company': 'Employeur',
+  'detail.indicatorNote': 'Chaque valeur telle que stockée, avec sa signification codée.',
+  'detail.description': 'Description',
+  'detail.blacklistedCompany':
+    'Cette entreprise est blacklistée. Ses nouvelles annonces sont rejetées à l’insertion (R12).',
+  'detail.notFound': 'Annonce introuvable',
+  'detail.notFoundHint': 'Elle a peut-être été supprimée.',
+  'detail.reports.by': 'Signalée par {name}',
+  'detail.blacklistEligible': 'Annonces fausses à ce jour : {count}',
+
+  'override.title': 'Décider manuellement',
+  'override.sub':
+    'Remplace le moteur de règles. La décision est enregistrée avec votre nom et votre motif.',
+  'override.status': 'Nouveau statut',
+  'override.reason': 'Motif',
+  'override.reasonPlaceholder': 'Pourquoi cette annonce mérite-t-elle un autre verdict ?',
+  'override.submit': 'Enregistrer la décision',
+  'override.done': 'Décision enregistrée',
+
+  'report.title': 'Signaler cette annonce',
+  'report.sub':
+    'Trois signalements font passer l’annonce en suspecte (R9). Cinq augmentent aussi son score de risque de vingt points (R10).',
+  'report.reason': 'Quel est le problème ?',
+  'report.submit': 'Envoyer le signalement',
+  'report.done': 'Signalement envoyé',
+  'report.doneBody': '{count} signalements sur cette annonce. {effect}',
+  'report.effectR9': 'Elle est passée en suspecte.',
+  'report.effectR10': 'Son score de risque a augmenté de vingt points.',
+  'report.effectNone': 'Les recruteurs vont la vérifier.',
+
+  'reason.1': 'Elle demande un paiement',
+  'reason.2': 'Le salaire semble trop beau pour être vrai',
+  'reason.3': 'Elle demande des données bancaires ou d’identité',
+  'reason.4': 'L’entreprise semble fausse',
+
+  'browse.title': 'Parcourir les annonces',
+  'browse.sub': 'Chaque annonce avec son verdict et son score de risque.',
+  'browse.intro':
+    'Les statuts viennent du moteur de règles des recruteurs. Un badge suspecte ou fausse signifie que l’annonce correspond à un schéma de fraude.',
+  'browse.search': 'Rechercher un titre, une entreprise ou un lieu',
+  'browse.empty.title': 'Aucune annonce ne correspond',
+  'browse.empty.hint': 'Essayez une autre recherche, ou effacez les filtres de statut.',
+  'browse.salaryHidden': 'Salaire non communiqué',
+  'browse.report': 'Signaler',
+  'browse.reported': 'Signalée',
+  'browse.detail': 'Voir l’annonce',
+  'browse.disclaimer':
+    'Ne payez jamais pour obtenir un emploi. Signalez les annonces qui le demandent.',
+
+  'view.about': 'À propos de cette annonce',
+  'view.salary': 'Salaire',
+  'view.type': 'Type de contrat',
+
+  'admin.companies.title': 'Entreprises',
+  'admin.companies.sub':
+    'Créer, modifier et supprimer des entreprises, et gérer la liste noire.',
+  'admin.companies.add': 'Ajouter une entreprise',
+  'admin.companies.edit': 'Modifier l’entreprise',
+  'admin.companies.new': 'Nouvelle entreprise',
+  'admin.companies.check': 'Lancer la vérification R11',
+  'admin.companies.checkFired': 'Blacklistée',
+  'admin.companies.checkFiredBody':
+    'Trois annonces fausses ou plus. R11 a blacklisté l’entreprise.',
+  'admin.companies.checkClean': 'Pas de blacklistage',
+  'admin.companies.checkCleanBody': 'Moins de trois annonces fausses. R11 ne s’est pas déclenchée.',
+  'admin.companies.blacklist': 'Blacklister',
+  'admin.companies.unblacklist': 'Retirer de la liste noire',
+  'admin.companies.eligible': 'Éligible au blacklistage',
+  'admin.companies.deleteTitle': 'Supprimer {name} ?',
+  'admin.companies.deleteBody':
+    'Cette entreprise a {count} annonces. La supprimer les supprime aussi, avec leurs signalements et leur historique.',
+  'admin.companies.deleteEmpty': 'Cette action est irréversible.',
+  'admin.companies.deleted': 'Entreprise supprimée',
+  'admin.companies.saved': 'Entreprise enregistrée',
+  'admin.companies.postings': 'Annonces',
+  'admin.companies.fake': 'Fausses',
+  'admin.companies.age': 'Ancienneté',
+  'admin.companies.profile': 'Profil',
+  'admin.companies.website': 'Site web',
+  'admin.companies.empty.title': 'Aucune entreprise',
+  'admin.companies.empty.hint': 'Ajoutez la première entreprise pour commencer.',
+  'admin.companies.deleteAnyway': 'Supprimer quand même',
+
+  'admin.recruiters.title': 'Recruteurs',
+  'admin.recruiters.sub': 'Les experts métier qui vérifient les annonces.',
+  'admin.recruiters.add': 'Ajouter un recruteur',
+  'admin.recruiters.edit': 'Modifier le recruteur',
+  'admin.recruiters.deleteTitle': 'Supprimer {name} ?',
+  'admin.recruiters.deleteBody': 'Ses décisions passées restent dans l’historique.',
+  'admin.recruiters.saved': 'Recruteur enregistré',
+  'admin.recruiters.deleted': 'Recruteur supprimé',
+
+  'role.R': 'Recruteur',
+  'role.P': 'En attente de validation',
+  'role.S': 'Superviseur',
+
+  'admin.rules.title': 'Référentiel de règles',
+  'admin.rules.sub':
+    'Les douze règles ECA telles que stockées dans la table ecaRule. Les règles sont des données : elles changent sans redéploiement.',
+  'admin.rules.priority': 'Priorité',
+  'admin.rules.trigger': 'Déclencheur',
+  'admin.rules.participant': 'Participant',
+  'admin.rules.group': 'Groupe',
+  'admin.rules.enabled': 'Active',
+  'admin.rules.conditions': 'Conditions',
+  'admin.rules.actions': 'Actions',
+  'admin.rules.count': '{count} règles',
+  'admin.rules.note':
+    'Le moteur évalue les règles du recruteur par ordre de priorité et s’arrête à la première correspondance. Les règles candidat et administrateur ont leurs propres déclencheurs.',
+
+  'rule.R1.summary': 'Aucun profil d’entreprise, salaire irréaliste et frais demandés.',
+  'rule.R2.summary': 'Des frais sont demandés avant l’entretien.',
+  'rule.R3.summary':
+    'Des données bancaires sont demandées et le site web n’est pas vérifié.',
+  'rule.R4.summary': 'Salaire élevé, description vague, ton urgent.',
+  'rule.R5.summary':
+    'Aucun profil d’entreprise et un canal de contact non professionnel.',
+  'rule.R6.summary':
+    'L’entreprise a moins d’un an et a publié plus de vingt annonces en un jour.',
+  'rule.R7.summary': 'Le salaire est masqué et le contact se fait uniquement par messagerie.',
+  'rule.R8.summary':
+    'Entreprise vérifiée, salaire réaliste, aucun frais, aucune donnée personnelle demandée.',
+  'rule.R9.summary': 'Trois signalements de candidats font passer l’annonce en suspecte.',
+  'rule.R10.summary':
+    'Cinq signalements ajoutent vingt points et demandent une revérification prioritaire.',
+  'rule.R11.summary': 'Trois annonces fausses ou plus blacklistent l’entreprise.',
+  'rule.R12.summary':
+    'Une annonce d’une entreprise blacklistée est rejetée à l’insertion.',
+
+  'dash.title': 'Tableau de bord',
+  'dash.sub': 'Part des annonces fausses par semaine et par entreprise.',
+  'dash.filter.company': 'Entreprise',
+  'dash.filter.allCompanies': 'Toutes les entreprises',
+  'dash.filter.period': 'Période',
+  'dash.filter.lastWeeks': '{count} dernières semaines',
+  'dash.filter.clear': 'Effacer les filtres',
+  'dash.kpi.postings': 'Annonces',
+  'dash.kpi.postingsFoot': 'sur {count} entreprises',
+  'dash.kpi.fakeShare': 'Part de fausses',
+  'dash.kpi.fakeShareFoot': '{count} annonces fausses',
+  'dash.kpi.pending': 'En attente de décision',
+  'dash.kpi.pendingFoot': '{count} suspectes à l’étude',
+  'dash.kpi.reports': 'Signalements cette semaine',
+  'dash.kpi.reportsFoot': '{count} décisions enregistrées',
+  'dash.weekly.title': 'Annonces par semaine',
+  'dash.weekly.sub': 'Les {count} dernières semaines, par verdict',
+  'dash.company.title': 'Part de fausses par entreprise',
+  'dash.company.selected': 'Part de fausses pour {company}',
+  'dash.company.sub': 'Entreprises ayant au moins une annonce',
+  'dash.rules.title': 'Règles déclenchées',
+  'dash.rules.sub': 'Décisions enregistrées par règle',
+  'dash.activity.title': 'Décisions récentes',
+  'dash.activity.sub': 'Dernières classifications sur la plateforme',
+  'dash.activity.subFiltered': 'Dernières classifications de cette sélection',
+  'dash.activity.empty': 'Aucune décision enregistrée.',
+  'dash.legend.fake': 'Fausse',
+  'dash.legend.suspicious': 'Suspecte',
+  'dash.legend.legit': 'Légitime',
+  'dash.legend.pending': 'En attente',
+  'dash.noData': 'Aucune annonce sur cette période.',
+  'dash.tableView': 'Tableau',
+  'dash.chartView': 'Graphique',
+  'dash.week': 'Semaine',
+  'dash.share': 'Part',
+  'dash.readout': '{fake} fausses sur {total} annonces',
+  'dash.rules.rule': 'Règle',
+  'dash.rules.count': 'Décisions',
+  'dash.company.meta': '{fake} fausses sur {total}',
+
+  'error.required': 'Ce champ est obligatoire.',
+  'error.coded': 'Choisissez une des valeurs codées.',
+  'error.number': 'Saisissez un nombre.',
+  'error.min': 'En dessous du minimum.',
+  'error.max': 'Au-dessus du maximum.',
+  'error.maxLength': 'Trop long.',
+  'error.date': 'Utilisez le format AAAA-MM-JJ.',
+  'error.email': 'Saisissez une adresse électronique valide.',
+  'error.salaryRange': 'Le maximum doit être supérieur ou égal au minimum.',
+  'error.companyHasPostings': 'Cette entreprise a encore des annonces. Supprimez-les d’abord.',
+  'error.notFound': 'Introuvable.',
+  'error.validation': 'Certains champs doivent être corrigés.',
+  'error.server': 'Le serveur a rencontré une erreur.',
+  'error.postingNotFound': 'Cette annonce n’existe pas.',
+  'error.candidateNotFound': 'Ce candidat n’existe pas.',
+  'error.routeNotFound': 'Point d’accès inconnu.',
+  'error.body': 'Le corps de la requête est absent.',
+  'error.role': 'Rôle inconnu.',
+  'error.network': 'Impossible de joindre l’API. Le serveur de démonstration est-il lancé ?',
+
+  'misc.rules': 'règles',
+
+  'toast.checked': 'Règle {rule} déclenchée',
+  'toast.checkedBody': '{status}, risque {score}.',
+  'toast.noRule': 'Aucune règle déclenchée',
+  'toast.noRuleBody': 'L’annonce reste {status} pour vérification manuelle.',
+  'toast.deleted': 'Supprimé',
+  'toast.saved': 'Enregistré',
+  'toast.error': 'Une erreur est survenue',
+  'toast.reset': 'Données de démonstration restaurées',
+  'toast.reported': 'Signalement envoyé',
+  'toast.blacklisted': 'Entreprise blacklistée',
+  'toast.unblacklisted': 'Entreprise retirée de la liste noire',
+}
+
+const MESSAGES = { en, fr }
+
+export const LANGUAGES = [
+  { code: 'en', label: 'EN' },
+  { code: 'fr', label: 'FR' },
+]
+
+const I18nContext = createContext(null)
+
+function interpolate(template, vars) {
+  if (!vars) return template
+  const tokens = template.split(/(\{\w+\})/)
+  if (tokens.length === 1) return template
+
+  const resolved = tokens.map((token) => {
+    const match = token.match(/^\{(\w+)\}$/)
+    if (!match) return token
+    const value = vars[match[1]]
+    return value === undefined || value === null ? token : value
+  })
+
+  if (resolved.every((value) => typeof value === 'string' || typeof value === 'number')) {
+    return resolved.join('')
+  }
+
+  // A value may be a React node (an inline <code> in the sign-in footnote).
+  return resolved.map((value, index) => <Fragment key={index}>{value}</Fragment>)
+}
+
+export function I18nProvider({ children }) {
+  const [lang, setLang] = useState(() => {
+    const stored = localStorage.getItem('verdict.lang')
+    if (stored === 'en' || stored === 'fr') return stored
+    return navigator.language?.toLowerCase().startsWith('fr') ? 'fr' : 'en'
+  })
+
+  useEffect(() => {
+    localStorage.setItem('verdict.lang', lang)
+    document.documentElement.lang = lang
+  }, [lang])
+
+  const t = useCallback(
+    (key, vars) => {
+      const dict = MESSAGES[lang] ?? MESSAGES.en
+      const text = dict[key] ?? MESSAGES.en[key] ?? key
+      return interpolate(text, vars)
+    },
+    [lang],
+  )
+
+  const locale = lang === 'fr' ? 'fr-FR' : 'en-GB'
+
+  const dateFormatter = useMemo(
+    () => new Intl.DateTimeFormat(locale, { day: '2-digit', month: 'short', year: 'numeric' }),
+    [locale],
+  )
+  const dateTimeFormatter = useMemo(
+    () =>
+      new Intl.DateTimeFormat(locale, {
+        day: '2-digit',
+        month: 'short',
+        hour: '2-digit',
+        minute: '2-digit',
+      }),
+    [locale],
+  )
+
+  const value = useMemo(
+    () => ({
+      lang,
+      setLang,
+      locale,
+      t,
+      formatDate(value) {
+        if (!value) return '—'
+        const date = new Date(value)
+        return Number.isNaN(date.getTime()) ? '—' : dateFormatter.format(date)
+      },
+      formatDateTime(value) {
+        if (!value) return '—'
+        const date = new Date(value)
+        return Number.isNaN(date.getTime()) ? '—' : dateTimeFormatter.format(date)
+      },
+    }),
+    [lang, locale, t, dateFormatter, dateTimeFormatter],
+  )
+
+  return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>
+}
+
+export function useI18n() {
+  const context = useContext(I18nContext)
+  if (!context) throw new Error('useI18n must be used inside I18nProvider')
+  return context
+}

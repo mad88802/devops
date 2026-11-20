@@ -1,0 +1,19 @@
+node_modules
+dist
+.env
+.env.local
+*.log
+.DS_Store
+
+.claude/
+
+# Build output
+dist/
+
+# Local Claude settings
+.claude/
+
+# Local environment files
+.env
+.env.local
+.env.*.local
