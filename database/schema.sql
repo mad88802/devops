@@ -3,6 +3,8 @@ CREATE DATABASE IF NOT EXISTS jobwatch_test
 
 USE jobwatch_test;
 
+DROP TABLE IF EXISTS eca_rule_condition;
+DROP TABLE IF EXISTS eca_rule;
 DROP TABLE IF EXISTS escalation;
 DROP TABLE IF EXISTS classification_result;
 DROP TABLE IF EXISTS report;
@@ -169,3 +171,54 @@ CREATE TABLE escalation (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE INDEX idx_escalation_open ON escalation(resolved_at, priority);
+
+
+-- US9 / T9.1: ECA rule repository in the database (rules can change without redeploying)
+-- One row per rule + one row per condition of its "under" part (a conjunction).
+-- Mirrors engine/rules.json: R1-R8 (ToCheck), R9-R10 (Report), R11 (CheckCompany), R12 (Insert).
+
+CREATE TABLE eca_rule (
+    rule_id        VARCHAR(10) NOT NULL PRIMARY KEY,               -- 'R1' ... 'R12'
+    name           VARCHAR(100) NOT NULL UNIQUE,
+    at_trigger     VARCHAR(20) NOT NULL
+                   CHECK (at_trigger IN ('ToCheck','Report','CheckCompany','Insert')),
+    active         INT NOT NULL DEFAULT 1 CHECK (active IN (0,1)), -- 0 = switched off, not deleted
+    -- acting part (which columns are used depends on the trigger)
+    act_status     CHAR(1) CHARACTER SET ascii COLLATE ascii_bin NULL
+                   CHECK (act_status IS NULL OR act_status IN ('L','S','F')),  -- P.Status(..)
+    act_risk_score INT NULL
+                   CHECK (act_risk_score IS NULL OR act_risk_score BETWEEN 0 AND 100),   -- P.RiskScore(n)
+    act_risk_delta INT NOT NULL DEFAULT 0
+                   CHECK (act_risk_delta BETWEEN -100 AND 100),    -- P.RiskScore(P.RiskScore + n)
+    act_escalate   VARCHAR(6) NULL
+                   CHECK (act_escalate IS NULL OR act_escalate IN ('normal','high')),    -- R.ToCheck(P)
+    act_blacklisted INT NULL
+                   CHECK (act_blacklisted IS NULL OR act_blacklisted IN (0,1)),          -- C.Blacklisted(n)
+    updated_at     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    -- a ToCheck / Insert rule decides a status AND a score; a CheckCompany rule blacklists;
+    -- a Report rule needs at least one of status, risk delta, escalation
+    CHECK (
+        (at_trigger IN ('ToCheck','Insert') AND act_status IS NOT NULL AND act_risk_score IS NOT NULL)
+     OR (at_trigger = 'CheckCompany' AND act_blacklisted IS NOT NULL)
+     OR (at_trigger = 'Report' AND (act_status IS NOT NULL OR act_risk_delta <> 0 OR act_escalate IS NOT NULL))
+    )
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE eca_rule_condition (
+    condition_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    rule_id      VARCHAR(10) NOT NULL,
+    seq          INT NOT NULL CHECK (seq >= 1),                    -- order inside the rule
+    participant  VARCHAR(2)  NOT NULL
+                 CHECK (participant IN ('C','S','F','K','P','Rp')), -- C company, S salary, F fee, K content, P posting, Rp reports
+    attribute    VARCHAR(40) NOT NULL,                             -- name used in the brief, e.g. SalaryLevel
+    op           VARCHAR(2)  NOT NULL CHECK (op IN ('=','!=','<','<=','>','>=')),
+    value_int    INT NULL,                                         -- coded number, e.g. 0 / 1 / 2 / 20
+    value_text   VARCHAR(10) NULL,                                 -- coded text, e.g. 'F' for P.Status
+    UNIQUE (rule_id, seq),
+    CHECK ((value_int IS NOT NULL AND value_text IS NULL)
+        OR (value_int IS NULL AND value_text IS NOT NULL)),        -- exactly one value
+    FOREIGN KEY (rule_id) REFERENCES eca_rule(rule_id)
+        ON UPDATE CASCADE ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE INDEX idx_rule_trigger ON eca_rule(at_trigger, active);

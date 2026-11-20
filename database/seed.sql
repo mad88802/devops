@@ -141,3 +141,49 @@ INSERT INTO classification_result
  (5, 5, NULL, 'F', 100, 'R12', '2026-10-25');
 
 COMMIT;
+
+
+-- ECA rules R1-R12 (generated from engine/rules.json)
+INSERT INTO eca_rule (rule_id, name, at_trigger, active, act_status, act_risk_score,
+                      act_risk_delta, act_escalate, act_blacklisted) VALUES
+ ('R1', 'Fake_NoProfile_Salary_Fee', 'ToCheck', 1, 'F', 95, 0, NULL, NULL),
+ ('R2', 'Fake_PrepaidFee', 'ToCheck', 1, 'F', 90, 0, NULL, NULL),
+ ('R3', 'Fake_SensitiveData', 'ToCheck', 1, 'F', 90, 0, NULL, NULL),
+ ('R4', 'Suspicious_TooGoodToBeTrue', 'ToCheck', 1, 'S', 65, 0, NULL, NULL),
+ ('R5', 'Suspicious_AnonymousContact', 'ToCheck', 1, 'S', 60, 0, NULL, NULL),
+ ('R6', 'Suspicious_BulkPosting', 'ToCheck', 1, 'S', 70, 0, NULL, NULL),
+ ('R7', 'Suspicious_OffPlatformContact', 'ToCheck', 1, 'S', 55, 0, NULL, NULL),
+ ('R8', 'Legit_Verified', 'ToCheck', 1, 'L', 10, 0, NULL, NULL),
+ ('R9', 'Escalate_Reported_Posting', 'Report', 1, 'S', NULL, 0, 'normal', NULL),
+ ('R10', 'Raise_Risk_On_Many_Reports', 'Report', 1, NULL, NULL, 20, 'high', NULL),
+ ('R11', 'Blacklist_Repeat_Offender', 'CheckCompany', 1, NULL, NULL, 0, NULL, 1),
+ ('R12', 'Reject_Blacklisted_Company', 'Insert', 1, 'F', 100, 0, NULL, NULL);
+
+INSERT INTO eca_rule_condition (rule_id, seq, participant, attribute, op, value_int, value_text) VALUES
+ ('R1', 1, 'C', 'HasProfile', '=', 0, NULL),
+ ('R1', 2, 'S', 'SalaryLevel', '=', 2, NULL),
+ ('R1', 3, 'F', 'FeeRequested', '=', 1, NULL),
+ ('R2', 1, 'F', 'FeeRequested', '=', 1, NULL),
+ ('R2', 2, 'F', 'PaymentBeforeInterview', '=', 1, NULL),
+ ('R3', 1, 'K', 'PersonalInfoRequested', '=', 2, NULL),
+ ('R3', 2, 'C', 'WebsiteVerified', '=', 0, NULL),
+ ('R4', 1, 'S', 'SalaryLevel', '>=', 1, NULL),
+ ('R4', 2, 'K', 'DescriptionQuality', '=', 0, NULL),
+ ('R4', 3, 'K', 'UrgencyLanguage', '>=', 1, NULL),
+ ('R5', 1, 'C', 'HasProfile', '=', 0, NULL),
+ ('R5', 2, 'K', 'ContactChannel', '>=', 1, NULL),
+ ('R6', 1, 'C', 'AgeYears', '<', 1, NULL),
+ ('R6', 2, 'C', 'PostingsLast24h', '>', 20, NULL),
+ ('R7', 1, 'S', 'SalaryHidden', '=', 1, NULL),
+ ('R7', 2, 'K', 'ContactChannel', '=', 2, NULL),
+ ('R7', 3, 'F', 'FeeRequested', '=', 0, NULL),
+ ('R8', 1, 'C', 'HasProfile', '=', 1, NULL),
+ ('R8', 2, 'C', 'WebsiteVerified', '=', 1, NULL),
+ ('R8', 3, 'S', 'SalaryLevel', '=', 0, NULL),
+ ('R8', 4, 'F', 'FeeRequested', '=', 0, NULL),
+ ('R8', 5, 'K', 'PersonalInfoRequested', '=', 0, NULL),
+ ('R9', 1, 'Rp', 'CountReports', '>=', 3, NULL),
+ ('R9', 2, 'P', 'Status', '!=', NULL, 'F'),
+ ('R10', 1, 'Rp', 'CountReports', '>=', 5, NULL),
+ ('R11', 1, 'C', 'FakePostingsCount', '>=', 3, NULL),
+ ('R12', 1, 'C', 'Blacklisted', '=', 1, NULL);
