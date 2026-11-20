@@ -1,16 +1,17 @@
-# T6.3 Escalation queue for recruiters
-Branch: `T6.3-escalation-queue`
+# T8.1 Admin CRUD for companies
+Branch: `T8.1-admin-crud-companies`
 
-| Endpoint | Function |
+| Endpoint | Action |
 |---|---|
-| GET /api/escalations                    | open queue: high priority first, then most reports, then oldest |
-| GET /api/escalations?include=resolved   | also closed entries (listed after the open ones) |
-| GET /api/escalations/<id>               | one entry |
+| POST   /api/admin/companies | create (201 + Location). `name` required; other fields default as in the schema |
+| GET    /api/admin/companies | list. Filters: `?blacklisted=0/1`, `?q=text` (name contains) |
+| GET    /api/admin/companies/<id> | read one |
+| PATCH or PUT /api/admin/companies/<id> | partial update: only the fields sent change (>= 1 field) |
+| DELETE /api/admin/companies/<id> | 204. Also deletes the company's postings (cascade: indicators, reports, history, queue) |
 
-Item: escalation_id, posting_id, title, company_name, status, risk_score, priority, rule_id, report_count, created_at, resolved_at, resolved_by.
-
-- database/schema.sql : adds table `escalation` (+ DROP before classification_result and an index). One OPEN row per posting; a new report updates it (priority can only go up).
-  For an existing database run only the CREATE TABLE / CREATE INDEX part.
-- services/escalation_service.py : enqueue, resolve_for_posting, list_queue, get_escalation.
-- services/tocheck_service.py (T3.3 file, 2 small edits): a recruiter's ToCheck closes the posting's open entry in the same transaction.
-- app/__init__.py : final version (T6.1 + escalation routes) - replaces the T6.1 copy.
+Fields: name (<=100), country (<=50), industry (<=50), age_years, postings_last_24h, fake_postings_count (integers >= 0),
+has_profile, website_verified, blacklisted (0/1), admin_id (existing IT admin or null).
+Errors: 422 with all problems at once, 404 unknown id, 400 body not a JSON object.
+The existing GET /api/companies/<id> getter (T2.3) is untouched; this is the admin side.
+No login exists in the project, so these endpoints are not authenticated.
+app/__init__.py : registers the admin company routes (builds on the US6 version).
