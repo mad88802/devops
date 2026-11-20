@@ -1,16 +1,16 @@
-# T6.2 Implement rules R9 and R10
-Branch: `T6.2-rules-r9-r10`
+# T6.3 Escalation queue for recruiters
+Branch: `T6.3-escalation-queue`
 
-Appendix A.6, at-trigger **Cd.Report**:
+| Endpoint | Function |
+|---|---|
+| GET /api/escalations                    | open queue: high priority first, then most reports, then oldest |
+| GET /api/escalations?include=resolved   | also closed entries (listed after the open ones) |
+| GET /api/escalations/<id>               | one entry |
 
-| Rule | Under | Acting |
-|---|---|---|
-| R9 Escalate_Reported_Posting  | Rp.CountReports >= 3 and P.Status != 'F' | P.Status("S") + R.ToCheck(P) -> queue, priority normal |
-| R10 Raise_Risk_On_Many_Reports | Rp.CountReports >= 5 | P.RiskScore(+20, max 100) + R.ToCheck(P) -> queue, priority high |
+Item: escalation_id, posting_id, title, company_name, status, risk_score, priority, rule_id, report_count, created_at, resolved_at, resolved_by.
 
-- rules.json : R1-R8 unchanged + R9, R10 (`at_trigger: "Report"`, acting = status / risk_delta / escalate).
-- repository.py : new participants P (Status, RiskScore) and Rp (CountReports), text codes in conditions (`P.Status != 'F'`), trigger "Report", validation of the new acting fields. ToCheck rules load exactly as before.
-- evaluator.py : PostingContext can read P and Rp.
-- reactions.py : apply_report_rules - applies EVERY matching Report rule (R9 and R10 do different things), conditions evaluated first, then actions; writes a classification_result row (no recruiter) only when status/risk really changed.
-Interpretation: `R.ToCheck(P)` = "ask a recruiter to re-check" (queue entry). Re-running R1-R8 automatically would let R8 undo R9 on a verified company.
-Literal spec: R10 uses ">= 5", so every report after the 5th adds another +20 (capped at 100). R9 changes only the status, not the risk score.
+- database/schema.sql : adds table `escalation` (+ DROP before classification_result and an index). One OPEN row per posting; a new report updates it (priority can only go up).
+  For an existing database run only the CREATE TABLE / CREATE INDEX part.
+- services/escalation_service.py : enqueue, resolve_for_posting, list_queue, get_escalation.
+- services/tocheck_service.py (T3.3 file, 2 small edits): a recruiter's ToCheck closes the posting's open entry in the same transaction.
+- app/__init__.py : final version (T6.1 + escalation routes) - replaces the T6.1 copy.

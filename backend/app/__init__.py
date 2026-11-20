@@ -14,6 +14,7 @@ from .engine.repository import DEFAULT_RULES_PATH, JsonRuleRepository, RuleLoadE
 from .errors import ConflictError, NotFoundError, ValidationError
 from .routes.check_routes import bp as check_bp
 from .routes.company_routes import bp as company_bp
+from .routes.escalation_routes import bp as escalation_bp
 from .routes.posting_routes import bp as posting_bp
 from .routes.report_routes import bp as report_bp
 
@@ -40,6 +41,7 @@ def create_app(config=None):
     app.register_blueprint(company_bp, url_prefix="/api")
     app.register_blueprint(check_bp, url_prefix="/api")
     app.register_blueprint(report_bp, url_prefix="/api")
+    app.register_blueprint(escalation_bp, url_prefix="/api")
     app.teardown_appcontext(close_connection)
 
     @app.errorhandler(ValidationError)
