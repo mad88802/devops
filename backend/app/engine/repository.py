@@ -52,7 +52,8 @@ PARTICIPANTS = {
 }
 
 OPERATORS = ("=", "!=", "<=", ">=", "<", ">")
-KNOWN_TRIGGERS = ("ToCheck", "Report")      # R.ToCheck (R1-R8), Cd.Report (R9, R10)
+KNOWN_TRIGGERS = ("ToCheck", "Report", "CheckCompany", "Insert")
+# R.ToCheck (R1-R8), Cd.Report (R9, R10), A.CheckCompany (R11), P.Insert (R12)
 ESCALATION_PRIORITIES = ("normal", "high")
 _STATUS_RANK = {"F": 0, "S": 1, "L": 2}     # precedence: Fake, then Suspicious, then Legit
 # value = an integer code or a quoted text code such as 'F'  (e.g. P.Status != 'F')
@@ -87,6 +88,7 @@ class Rule:
     risk_score: object        # 0-100 for ToCheck rules; None for Report rules
     risk_delta: int = 0       # Report rules: P.RiskScore(P.RiskScore + delta)
     escalate: object = None   # Report rules: None, "normal" or "high" (R.ToCheck(P) request)
+    set_blacklisted: object = None   # CheckCompany rules: C.Blacklisted(0 or 1)
 
     @property
     def sort_key(self):
@@ -156,8 +158,18 @@ def parse_rules(document):
             conds = [_parse_condition(t, where, problems) for t in under]
         acting = raw.get("acting") if isinstance(raw.get("acting"), dict) else {}
         status, score = acting.get("status"), acting.get("risk_score")
-        delta, escalate = 0, None
-        if trigger == "Report":
+        delta, escalate, set_bl = 0, None, None
+        if trigger == "CheckCompany":
+            # A.CheckCompany rules (R11): the only action is C.Blacklisted(0/1)
+            set_bl = acting.get("blacklisted")
+            if set_bl not in (0, 1) or isinstance(set_bl, bool):
+                problems.append(f"{where}: acting.blacklisted must be 0 or 1")
+                set_bl = None
+            if isinstance(under, list) and any(
+                    isinstance(t, str) and not t.strip().startswith("C.") for t in under):
+                problems.append(f"{where}: a CheckCompany rule can only use company (C.) conditions")
+            status = score = None
+        elif trigger == "Report":
             # Cd.Report rules: any of status / risk_delta / escalate (at least one)
             if status is not None and (status not in STATUSES or status == "P"):
                 problems.append(f"{where}: acting.status must be L, S or F")
@@ -178,7 +190,7 @@ def parse_rules(document):
             if not isinstance(score, int) or isinstance(score, bool) or not 0 <= score <= 100:
                 problems.append(f"{where}: acting.risk_score must be an integer from 0 to 100")
         if not problems or all(not p.startswith(where) for p in problems):
-            rules.append(Rule(rid, name, trigger, tuple(conds), status, score, delta, escalate))
+            rules.append(Rule(rid, name, trigger, tuple(conds), status, score, delta, escalate, set_bl))
     if problems:
         raise RuleLoadError(problems)
     return rules

@@ -22,11 +22,12 @@ def _posting_dict(row):
     return out
 
 
-def insert_posting(conn, payload):
+def insert_posting(conn, payload, rules=None):
     """Validate, then store the posting and its indicator rows in ONE transaction.
 
     A new posting always starts as status 'P' (Pending) with risk_score 0:
-    only ToCheck (US3) changes them.
+    only ToCheck (US3) changes them. With `rules` given, the P.Insert rules run in the
+    same transaction (R12: a blacklisted company's posting is rejected as F / 100).
     """
     data = validate_posting(payload)
     if not company_service.company_exists(conn, data["company_id"]):
@@ -46,6 +47,9 @@ def insert_posting(conn, payload):
                 f"INSERT INTO {table} ({', '.join(names)}) "
                 f"VALUES ({', '.join(['%s'] * len(names))})",
                 [posting_id] + list(block.values()))
+        if rules is not None:
+            from ..engine import admin_rules          # local import: avoids a circular import
+            admin_rules.apply_insert_rules(conn, rules, posting_id, data["company_id"])
         conn.commit()
     except Exception:
         conn.rollback()
