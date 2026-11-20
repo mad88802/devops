@@ -1,6 +1,7 @@
-from flask import Blueprint, jsonify, request, url_for
+from flask import Blueprint, current_app, jsonify, request, url_for
 
 from ..db import get_db
+from ..engine.repository import JsonRuleRepository
 from ..services import indicator_service, posting_service
 
 bp = Blueprint("postings", __name__)
@@ -12,7 +13,8 @@ def insert_posting():
     if not isinstance(payload, dict):
         return jsonify(error="bad_request",
                        message="body must be a JSON object (Content-Type: application/json)"), 400
-    posting = posting_service.insert_posting(get_db(), payload)
+    rules = JsonRuleRepository(current_app.config["RULES_PATH"]).load()   # R12 runs at insert
+    posting = posting_service.insert_posting(get_db(), payload, rules=rules)
     resp = jsonify(posting)
     resp.status_code = 201
     resp.headers["Location"] = url_for("postings.display_posting",
@@ -35,6 +37,7 @@ def remove_posting(posting_id):
 @bp.get("/postings/<int:posting_id>/salary")
 def get_salary(posting_id):
     return jsonify(indicator_service.get_salary(get_db(), posting_id))
+
 
 @bp.get("/postings/<int:posting_id>/fee")
 def get_fee(posting_id):
