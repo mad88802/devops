@@ -1,7 +1,7 @@
 """TEAM 12 - Fake Job Posting Detection : business-level web services.
 
 Each UML class becomes a service (see the ECA architecture diagram):
-Posting, Company, Salary, Fee, Content. US2 provides the Posting service
+Posting, Company, Salary, Fee, Content, Candidate, Report. US2 provides the Posting service
 and the getter services used later by the ECA rule engine.
 """
 import os
@@ -11,10 +11,11 @@ from werkzeug.exceptions import HTTPException
 
 from .db import close_connection, make_factory
 from .engine.repository import DEFAULT_RULES_PATH, JsonRuleRepository, RuleLoadError
-from .errors import NotFoundError, ValidationError
+from .errors import ConflictError, NotFoundError, ValidationError
 from .routes.check_routes import bp as check_bp
 from .routes.company_routes import bp as company_bp
 from .routes.posting_routes import bp as posting_bp
+from .routes.report_routes import bp as report_bp
 
 
 def create_app(config=None):
@@ -38,6 +39,7 @@ def create_app(config=None):
     app.register_blueprint(posting_bp, url_prefix="/api")
     app.register_blueprint(company_bp, url_prefix="/api")
     app.register_blueprint(check_bp, url_prefix="/api")
+    app.register_blueprint(report_bp, url_prefix="/api")
     app.teardown_appcontext(close_connection)
 
     @app.errorhandler(ValidationError)
@@ -48,6 +50,10 @@ def create_app(config=None):
     def _bad_rules(err):
         app.logger.error("rule repository problem: %s", err)
         return jsonify(error="rules_unavailable", message=str(err)), 500
+
+    @app.errorhandler(ConflictError)
+    def _conflict(err):
+        return jsonify(error="conflict", message=str(err)), 409
 
     @app.errorhandler(NotFoundError)
     def _not_found(err):
