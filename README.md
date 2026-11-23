@@ -90,19 +90,26 @@ The system classifies job postings into three determination states:
 
 ### Active Detection Rules (R1 - R12)
 
-- R1 (Critical Fraud): Company without profile + Salary level 2 (High) + Monetary fee requested -> Status: Fraudulent, Risk: 95.
-- R2 (Deceptive Remote): Telecommuting enabled + Urgency language level 2 (Extreme) + High salary -> Status: Suspicious, Risk: 60.
-- R3 (Unverified Identity): Missing company profile + Public/free email domain (e.g., @gmail.com) -> Status: Suspicious, Risk: 50.
-- R4 (Low Quality Lure): Description quality level 0 (Poor) + Urgency language level 2 -> Status: Suspicious, Risk: 45.
-- R5 (Unsolicited Fee): Any monetary application or onboarding fee requested -> Status: Fraudulent, Risk: 90.
-- R6 (Identity Theft Risk): Personal bank account or sensitive identity data requested -> Status: Fraudulent, Risk: 95.
-- R7 (Suspicious Payment Language): Wire transfer, cryptocurrency, or check re-routing keywords detected -> Status: Suspicious, Risk: 65.
-- R8 (Standard Legitimate Baseline): Verified company website + Profile present + Realistic salary + No fee + No sensitive data -> Status: Legitimate, Risk: 10.
-- R9 (Community Escalation): Multiple candidate reports submitted against a posting -> Escalates risk score by delta (+30) and marks Suspicious.
-- R10 (Company Blacklist Cascade): Associated company is blacklisted -> Automatically sets status to Fraudulent, Risk: 100.
-- R11 (Company Health Trigger): Company exceeds fraud threshold ratio -> Initiates company security review and blacklisting.
-- R12 (Audit-Trailed Manual Override): Senior/Lead recruiter provides justification -> Updates status, recalculates score, and records an immutable classification history row.
+Rules are stored in the database (`eca_rule` and `eca_rule_condition`) and loaded by the engine.
 
+**Posting check (trigger: ToCheck).** Fake rules are evaluated first, then Suspicious, then Legit. If no rule fires, the posting stays Pending.
+
+- R1 (Fake_NoProfile_Salary_Fee): No company profile + salary level 2 + fee requested -> Fraudulent, Risk 95.
+- R2 (Fake_PrepaidFee): Fee requested + payment before interview -> Fraudulent, Risk 90.
+- R3 (Fake_SensitiveData): Bank or card details requested + unverified company website -> Fraudulent, Risk 90.
+- R4 (Suspicious_TooGoodToBeTrue): Salary level 1 or more + poor description + urgency language -> Suspicious, Risk 65.
+- R5 (Suspicious_AnonymousContact): No company profile + free webmail or messaging contact -> Suspicious, Risk 60.
+- R6 (Suspicious_BulkPosting): Company under 1 year old + more than 20 postings in 24 hours -> Suspicious, Risk 70.
+- R7 (Suspicious_OffPlatformContact): Hidden salary + messaging app only + no fee -> Suspicious, Risk 55.
+- R8 (Legit_Verified): Company profile and verified website + realistic salary + no fee + no personal data requested -> Legitimate, Risk 10.
+
+**Candidate reports (trigger: Report).**
+- R9 (Escalate_Reported_Posting): 3 or more reports and not already Fraudulent -> Suspicious and escalated for recruiter review.
+- R10 (Raise_Risk_On_Many_Reports): 5 or more reports -> risk +20 and high-priority escalation.
+
+**Administration.**
+- R11 (Blacklist_Repeat_Offender, trigger: CheckCompany): 3 or more fraudulent postings -> company blacklisted.
+- R12 (Reject_Blacklisted_Company, trigger: Insert): new posting from a blacklisted company -> Fraudulent, Risk 100.
 ---
 
 ## Prerequisites
@@ -193,18 +200,16 @@ cd DEVOPS_G12_FAKE_POSTING
 
 ## Default Accounts
 
-The seed database provides pre-configured credentials for testing:
+Seed data created by `python init_db.py` (SQLite):
 
-| Role | Name | Identifier | Access Route |
-| :--- | :--- | :--- | :--- |
-| Recruiter (Lead) | Iheb Ben Mansour | ID: 3 | `/recruiter/inbox` |
-| Recruiter (Senior) | Mohamed Amine Benkraouda | ID: 1 | `/recruiter/inbox` |
-| Recruiter (Junior) | Abderrahim | ID: 4 | `/recruiter/inbox` |
-| Candidate | Alice Smith | ID: 1 | `/candidate/browse` |
-| IT Administrator | Root Admin | ID: 1 | `/admin/companies` |
-
-To switch roles, navigate to `/login` and select any persona card.
-
+| Role | Name | ID |
+| :--- | :--- | :--- |
+| Recruiter | Amine Benkraouda | 1 |
+| Recruiter | Imad Chalabi | 2 |
+| Recruiter (Senior) | Iheb Bouyahia | 3 |
+| Recruiter | Abderrahim Bena Oumeur | 4 |
+| Candidate | Sofiane Hamidi (and 4 others) | 1 to 5 |
+| IT Administrator | Nadia Belkacem | 1 |
 ---
 
 ## API Endpoints Reference
