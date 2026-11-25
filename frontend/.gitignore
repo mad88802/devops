@@ -17,3 +17,6 @@ dist/
 .env
 .env.local
 .env.*.local
+
+# Sign-up database (created on first API start, never committed)
+server/data/accounts.json

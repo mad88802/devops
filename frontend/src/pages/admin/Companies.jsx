@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { FIELD_INDEX, describeValue } from '../../lib/fields.js'
+import { FIELD_INDEX, describeValue } from '../../../shared/fields.js'
 import { api } from '../../api/client.js'
 import { DataTable } from '../../components/DataTable.jsx'
 import { FormField } from '../../components/Field.jsx'

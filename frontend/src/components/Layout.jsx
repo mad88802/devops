@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { api } from '../api/client.js'
 import { useAuth } from '../context/AuthContext.jsx'
@@ -77,10 +77,51 @@ export function Layout() {
   const navigate = useNavigate()
   const [resetOpen, setResetOpen] = useState(false)
   const [resetting, setResetting] = useState(false)
+  const [railHidden, setRailHidden] = useState(
+    () => localStorage.getItem('verdict.railHidden') === '1',
+  )
+  const [railWidth, setRailWidth] = useState(() => {
+    const saved = Number(localStorage.getItem('verdict.railWidth'))
+    return Number.isFinite(saved) && saved >= 200 && saved <= 420 ? saved : 236
+  })
+
+  useEffect(() => {
+    localStorage.setItem('verdict.railHidden', railHidden ? '1' : '0')
+  }, [railHidden])
+
+  useEffect(() => {
+    localStorage.setItem('verdict.railWidth', String(railWidth))
+  }, [railWidth])
+
+  /** Drag the right edge of the rail to resize it, from 200 to 420 px. */
+  function startResize(event) {
+    event.preventDefault()
+    const startX = event.clientX
+    const startWidth = railWidth
+
+    function onMove(moveEvent) {
+      setRailWidth(Math.min(420, Math.max(200, startWidth + moveEvent.clientX - startX)))
+    }
+
+    function onUp() {
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+      document.body.classList.remove('is-resizing')
+    }
+
+    document.body.classList.add('is-resizing')
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
+  }
 
   const kind = user?.kind ?? 'candidate'
   const groups = NAV[kind] ?? NAV.candidate
   const section = SECTION_OF.find(([prefix]) => location.pathname.startsWith(prefix))?.[1]
+
+  function goBack() {
+    if (window.history.length > 1) navigate(-1)
+    else navigate('/')
+  }
 
   async function confirmReset() {
     setResetting(true)
@@ -97,8 +138,24 @@ export function Layout() {
   }
 
   return (
-    <div className="shell">
+    <div
+      className={`shell${railHidden ? ' shell--rail-hidden' : ''}`}
+      style={{ '--rail-width': `${railWidth}px` }}
+    >
       <aside className="rail">
+        <span className="rail__ball rail__ball--1" aria-hidden="true" />
+        <span className="rail__ball rail__ball--2" aria-hidden="true" />
+        <span className="rail__ball rail__ball--3" aria-hidden="true" />
+        <span className="rail__ball rail__ball--4" aria-hidden="true" />
+        <span className="rail__ball rail__ball--5" aria-hidden="true" />
+        <span
+          className="rail__resizer"
+          role="separator"
+          aria-orientation="vertical"
+          aria-label={t('topbar.resizeMenu')}
+          title={t('topbar.resizeMenu')}
+          onPointerDown={startResize}
+        />
         <div className="rail__head">
           <Brand />
         </div>
@@ -142,6 +199,27 @@ export function Layout() {
 
       <div className="main">
         <header className="topbar">
+          <div className="topbar__nav">
+            <button
+              type="button"
+              className="icon-btn icon-btn--ink"
+              onClick={() => setRailHidden((value) => !value)}
+              aria-label={t(railHidden ? 'topbar.showMenu' : 'topbar.hideMenu')}
+              title={t(railHidden ? 'topbar.showMenu' : 'topbar.hideMenu')}
+            >
+              <Icon name={railHidden ? 'menu' : 'panelLeft'} size={16} />
+            </button>
+            <button
+              type="button"
+              className="icon-btn icon-btn--ink"
+              onClick={goBack}
+              aria-label={t('topbar.back')}
+              title={t('topbar.back')}
+            >
+              <Icon name="arrowLeft" size={16} />
+            </button>
+          </div>
+
           <div className="topbar__section">
             <span>{t('app.name')}</span>
             <span className="topbar__sep">/</span>

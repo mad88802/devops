@@ -1,4 +1,4 @@
-"""T3.1 - ECA rule evaluator (T6.2: also reads P and Rp for the Report trigger).
+"""T3.1 - ECA rule evaluator.
 
 The participants of a rule (C, S, F, K) are read ONLY through the getter services
 of US2 (Company_Intf, Salary_Intf, Fee_Intf, Content_Intf), never with SQL.
@@ -7,7 +7,7 @@ import operator
 from dataclasses import dataclass, field
 
 from ..errors import NotFoundError
-from ..services import company_service, indicator_service, posting_service, report_service
+from ..services import company_service, indicator_service
 
 _OPS = {"=": operator.eq, "!=": operator.ne, "<": operator.lt,
         "<=": operator.le, ">": operator.gt, ">=": operator.ge}
@@ -26,11 +26,7 @@ class PostingContext:
     def participant(self, key):
         if key not in self._cache:
             try:
-                if key == "P":
-                    value = posting_service.get_posting(self._conn, self._posting_id)
-                elif key == "Rp":
-                    value = {"count_reports": report_service.count_reports(self._conn, self._posting_id)}
-                elif key == "C":
+                if key == "C":
                     value = company_service.get_company(self._conn, self._company_id)
                 elif key == "S":
                     value = indicator_service.get_salary(self._conn, self._posting_id)

@@ -17,13 +17,6 @@ DEFAULT_RULES_PATH = os.path.join(os.path.dirname(__file__), "rules.json")
 
 # Participants of the ECA law -> (name, {AttributeInBrief: (db column, allowed codes or None)})
 PARTICIPANTS = {
-    "P": ("posting", {                                   # US6: Posting_Intf
-        "Status": ("status", STATUSES),
-        "RiskScore": ("risk_score", None),
-    }),
-    "Rp": ("report", {                                   # US6: Report_Intf
-        "CountReports": ("count_reports", None),
-    }),
     "C": ("company", {
         "HasProfile": ("has_profile", (0, 1)),
         "WebsiteVerified": ("website_verified", (0, 1)),
@@ -52,12 +45,9 @@ PARTICIPANTS = {
 }
 
 OPERATORS = ("=", "!=", "<=", ">=", "<", ">")
-KNOWN_TRIGGERS = ("ToCheck", "Report", "CheckCompany", "Insert")
-# R.ToCheck (R1-R8), Cd.Report (R9, R10), A.CheckCompany (R11), P.Insert (R12)
-ESCALATION_PRIORITIES = ("normal", "high")
+KNOWN_TRIGGERS = ("ToCheck",)
 _STATUS_RANK = {"F": 0, "S": 1, "L": 2}     # precedence: Fake, then Suspicious, then Legit
-# value = an integer code or a quoted text code such as 'F'  (e.g. P.Status != 'F')
-_COND_RE = re.compile(r"^\s*([A-Z][a-z]?)\.([A-Za-z0-9]+)\s*(=|!=|<=|>=|<|>)\s*(-?\d+|'[^']*'|\"[^\"]*\")\s*$")
+_COND_RE = re.compile(r"^\s*([A-Z])\.([A-Za-z0-9]+)\s*(=|!=|<=|>=|<|>)\s*(-?\d+)\s*$")
 
 
 class RuleLoadError(Exception):
@@ -72,10 +62,10 @@ class Condition:
     attribute: str        # name used in the brief, e.g. SalaryLevel
     column: str           # column of the getter result, e.g. salary_level
     op: str
-    value: object         # int, or str for text codes such as a status
+    value: int
 
     def __str__(self):
-        return f"{self.participant}.{self.attribute} {self.op} {self.value!r}"
+        return f"{self.participant}.{self.attribute} {self.op} {self.value}"
 
 
 @dataclass(frozen=True)
@@ -84,18 +74,15 @@ class Rule:
     name: str
     trigger: str
     conditions: tuple
-    status: object            # L/S/F; None for a Report rule that only raises the risk
-    risk_score: object        # 0-100 for ToCheck rules; None for Report rules
-    risk_delta: int = 0       # Report rules: P.RiskScore(P.RiskScore + delta)
-    escalate: object = None   # Report rules: None, "normal" or "high" (R.ToCheck(P) request)
-    set_blacklisted: object = None   # CheckCompany rules: C.Blacklisted(0 or 1)
+    status: str
+    risk_score: int
 
     @property
     def sort_key(self):
         """Fake rules first, then Suspicious, then Legit; inside a class the
         highest risk score wins, then the lowest rule number."""
         num = int(re.sub(r"\D", "", self.id) or 0)
-        return (_STATUS_RANK.get(self.status, 3), -(self.risk_score or 0), num)
+        return (_STATUS_RANK[self.status], -self.risk_score, num)
 
 
 def _parse_condition(text, where, problems):
@@ -104,7 +91,7 @@ def _parse_condition(text, where, problems):
         problems.append(f"{where}: cannot read condition {text!r} (expected e.g. 'C.HasProfile = 0')")
         return None
     part, attr, op, raw = m.groups()
-    value = raw[1:-1] if raw[0] in "'\"" else int(raw)
+    value = int(raw)
     if part not in PARTICIPANTS:
         problems.append(f"{where}: unknown participant {part!r} in {text!r}")
         return None
@@ -113,12 +100,6 @@ def _parse_condition(text, where, problems):
         problems.append(f"{where}: unknown attribute {part}.{attr}")
         return None
     column, codes = attrs[attr]
-    if isinstance(value, str) and op not in ("=", "!="):
-        problems.append(f"{where}: text values only work with = and != in {text!r}")
-        return None
-    if codes is None and isinstance(value, str):
-        problems.append(f"{where}: {part}.{attr} is numeric, got text in {text!r}")
-        return None
     if codes is not None and value not in codes:
         problems.append(f"{where}: {part}.{attr} cannot be {value} (allowed codes: "
                         + ", ".join(map(str, codes)) + ")")
@@ -158,39 +139,12 @@ def parse_rules(document):
             conds = [_parse_condition(t, where, problems) for t in under]
         acting = raw.get("acting") if isinstance(raw.get("acting"), dict) else {}
         status, score = acting.get("status"), acting.get("risk_score")
-        delta, escalate, set_bl = 0, None, None
-        if trigger == "CheckCompany":
-            # A.CheckCompany rules (R11): the only action is C.Blacklisted(0/1)
-            set_bl = acting.get("blacklisted")
-            if set_bl not in (0, 1) or isinstance(set_bl, bool):
-                problems.append(f"{where}: acting.blacklisted must be 0 or 1")
-                set_bl = None
-            if isinstance(under, list) and any(
-                    isinstance(t, str) and not t.strip().startswith("C.") for t in under):
-                problems.append(f"{where}: a CheckCompany rule can only use company (C.) conditions")
-            status = score = None
-        elif trigger == "Report":
-            # Cd.Report rules: any of status / risk_delta / escalate (at least one)
-            if status is not None and (status not in STATUSES or status == "P"):
-                problems.append(f"{where}: acting.status must be L, S or F")
-            delta = acting.get("risk_delta", 0)
-            if not isinstance(delta, int) or isinstance(delta, bool) or not -100 <= delta <= 100:
-                problems.append(f"{where}: acting.risk_delta must be an integer from -100 to 100")
-                delta = 0
-            escalate = acting.get("escalate")
-            if escalate is not None and escalate not in ESCALATION_PRIORITIES:
-                problems.append(f"{where}: acting.escalate must be one of "
-                                + ", ".join(ESCALATION_PRIORITIES))
-            if status is None and not delta and escalate is None:
-                problems.append(f"{where}: acting needs status, risk_delta or escalate")
-            score = None
-        else:
-            if status not in STATUSES or status == "P":
-                problems.append(f"{where}: acting.status must be L, S or F")
-            if not isinstance(score, int) or isinstance(score, bool) or not 0 <= score <= 100:
-                problems.append(f"{where}: acting.risk_score must be an integer from 0 to 100")
+        if status not in STATUSES or status == "P":
+            problems.append(f"{where}: acting.status must be L, S or F")
+        if not isinstance(score, int) or isinstance(score, bool) or not 0 <= score <= 100:
+            problems.append(f"{where}: acting.risk_score must be an integer from 0 to 100")
         if not problems or all(not p.startswith(where) for p in problems):
-            rules.append(Rule(rid, name, trigger, tuple(conds), status, score, delta, escalate, set_bl))
+            rules.append(Rule(rid, name, trigger, tuple(conds), status, score))
     if problems:
         raise RuleLoadError(problems)
     return rules

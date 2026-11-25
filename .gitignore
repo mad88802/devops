@@ -14,9 +14,9 @@ dist/
 downloads/
 eggs/
 .eggs/
-/lib/
-/lib64/
-# Do not ignore frontend React library
+lib/
+lib64/
+# The Python rules above must not hide the React source directory.
 !frontend/src/lib/
 !frontend/src/lib/**
 parts/
@@ -51,3 +51,5 @@ ENV/
 # OS generated files
 .DS_Store
 Thumbs.db
+
+!frontend/.env.example

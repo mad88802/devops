@@ -1,9 +1,8 @@
-"""Tiny DB-API wrapper: PyMySQL in production, sqlite3 for local dev and testing.
+"""Tiny DB-API wrapper: PyMySQL in production, sqlite3 for the unit tests.
 
 All SQL in the services is written with %s placeholders; for SQLite they are
-translated to ?. Only plain SELECT / INSERT / UPDATE / DELETE statements are used.
+translated to ?. Only plain SELECT / INSERT / DELETE statements are used.
 """
-import os
 import sqlite3
 
 from flask import current_app, g
@@ -58,47 +57,31 @@ class Connection:
         self.raw.commit()
 
     def rollback(self):
-        try:
-            self.raw.rollback()
-        except Exception:
-            pass
+        self.raw.rollback()
 
     def close(self):
         self.raw.close()
 
 
 def make_factory(cfg):
-    backend = cfg.get("DB_BACKEND", "sqlite")
+    backend = cfg["DB_BACKEND"]
     if backend == "sqlite":
-        db_path = cfg.get("SQLITE_PATH", "jobwatch.db")
-        if not os.path.isabs(db_path):
-            # Resolve relative to backend folder or workspace root if present
-            base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-            alt_path = os.path.join(base_dir, db_path)
-            if os.path.exists(alt_path) or not os.path.exists(db_path):
-                db_path = alt_path
-
-        def sqlite_factory():
-            raw = sqlite3.connect(db_path)
+        def factory():
+            raw = sqlite3.connect(cfg["SQLITE_PATH"])
             raw.row_factory = sqlite3.Row
             raw.execute("PRAGMA foreign_keys = ON")
             return Connection(raw, "sqlite")
-        return sqlite_factory
     else:
-        def mysql_factory():
+        def factory():
             import pymysql
             raw = pymysql.connect(
-                host=cfg.get("MYSQL_HOST", "127.0.0.1"),
-                port=int(cfg.get("MYSQL_PORT", 3306)),
-                user=cfg.get("MYSQL_USER", "root"),
-                password=cfg.get("MYSQL_PASSWORD", ""),
-                database=cfg.get("MYSQL_DATABASE", "jobwatch_test"),
-                charset="utf8mb4",
-                cursorclass=pymysql.cursors.DictCursor,
-                autocommit=False,
+                host=cfg["MYSQL_HOST"], port=cfg["MYSQL_PORT"],
+                user=cfg["MYSQL_USER"], password=cfg["MYSQL_PASSWORD"],
+                database=cfg["MYSQL_DATABASE"], charset="utf8mb4",
+                cursorclass=pymysql.cursors.DictCursor, autocommit=False,
             )
             return Connection(raw, "mysql")
-        return mysql_factory
+    return factory
 
 
 def get_db():

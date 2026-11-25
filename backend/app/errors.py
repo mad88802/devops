@@ -8,7 +8,3 @@ class ValidationError(Exception):
 
 class NotFoundError(Exception):
     """Requested resource does not exist."""
-
-
-class ConflictError(Exception):
-    """The request conflicts with the current state (e.g. the same report twice)."""

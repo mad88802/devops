@@ -5,7 +5,7 @@
  * T5.3 — statusTone / statusLabel (badges and verdict colours)
  * T7.1 — relativeDays / percent (list columns)
  */
-import { FIELD_INDEX, STATUS_META, riskBand } from './fields.js'
+import { FIELD_INDEX, STATUS_META, riskBand } from '../../shared/fields.js'
 
 export { riskBand }
 

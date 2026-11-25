@@ -17,6 +17,7 @@
  */
 import { Router } from 'express'
 import * as store from './store.js'
+import * as authStore from './authStore.js'
 import { ALL_RULES } from '../shared/rules.js'
 import {
   validateCompanyPayload,
@@ -46,56 +47,59 @@ const fail = (res, status, message, fields, meta) =>
 
 /* -------------------------------- auth -------------------------------- */
 
-/** Demo sign-in. A real deployment replaces this with the university SSO. */
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+/**
+ * Sign-in against the persistent account store. There is no demo shortcut:
+ * an account has to be created through POST /auth/register first.
+ */
 router.post('/auth/login', (req, res) => {
-  const { role = 'recruiter', userId } = req.body ?? {}
-  if (role === 'recruiter') {
-    const recruiter = userId ? store.getRecruiter(userId) : store.listRecruiters()[0]
-    if (!recruiter) return fail(res, 404, 'error.notFound')
-    return res.json({
-      user: {
-        id: recruiter.id,
-        kind: 'recruiter',
-        name: recruiter.name,
-        surname: recruiter.surname,
-        fullName: `${recruiter.name} ${recruiter.surname}`,
-        email: recruiter.email,
-        role: recruiter.role,
-      },
-    })
+  const { email, password } = req.body ?? {}
+  if (!email || !password) return fail(res, 422, 'error.credentials')
+
+  const account = authStore.authenticate(email, password)
+  if (!account) return fail(res, 401, 'error.credentials')
+  res.json({ user: authStore.publicUser(account) })
+})
+
+/**
+ * Sign-up. Creates a persistent account and the matching people-table row so a
+ * new recruiter can immediately create postings under their own id.
+ */
+router.post('/auth/register', (req, res) => {
+  const body = req.body ?? {}
+  const errors = {}
+
+  const name = String(body.name ?? '').trim()
+  const surname = String(body.surname ?? '').trim()
+  const email = String(body.email ?? '').trim().toLowerCase()
+  const password = String(body.password ?? '')
+  const kind = String(body.kind ?? '')
+  const role = String(body.role ?? 'R')
+
+  if (!name) errors['auth.name'] = 'error.required'
+  else if (name.length > 100) errors['auth.name'] = 'error.maxLength'
+
+  if (!surname) errors['auth.surname'] = 'error.required'
+  else if (surname.length > 100) errors['auth.surname'] = 'error.maxLength'
+
+  if (!email) errors['auth.email'] = 'error.required'
+  else if (!EMAIL_RE.test(email)) errors['auth.email'] = 'error.email'
+  else if (authStore.emailExists(email)) errors['auth.email'] = 'error.emailTaken'
+
+  if (!password) errors['auth.password'] = 'error.required'
+  else if (password.length < 8) errors['auth.password'] = 'error.passwordShort'
+
+  if (!['recruiter', 'candidate', 'admin'].includes(kind)) {
+    errors['auth.kind'] = 'error.coded'
+  } else if (kind === 'recruiter' && !['R', 'P', 'S'].includes(role)) {
+    errors['auth.role'] = 'error.coded'
   }
-  if (role === 'candidate') {
-    const candidate = userId ? store.getCandidate(userId) : store.listCandidates()[0]
-    if (!candidate) return fail(res, 404, 'error.notFound')
-    return res.json({
-      user: {
-        id: candidate.id,
-        kind: 'candidate',
-        name: candidate.name,
-        surname: candidate.surname,
-        fullName: `${candidate.name} ${candidate.surname}`,
-        email: candidate.email,
-        role: null,
-      },
-    })
-  }
-  if (role === 'admin') {
-    const admins = store.getTables().itAdmin
-    const admin = userId ? admins.find((a) => a.id === Number(userId)) : admins[0]
-    if (!admin) return fail(res, 404, 'error.notFound')
-    return res.json({
-      user: {
-        id: admin.id,
-        kind: 'admin',
-        name: admin.name.split(' ')[0],
-        surname: admin.name.split(' ').slice(1).join(' '),
-        fullName: admin.name,
-        email: admin.email,
-        role: null,
-      },
-    })
-  }
-  return fail(res, 400, 'error.role')
+
+  if (Object.keys(errors).length > 0) return fail(res, 422, 'error.validation', errors)
+
+  const account = authStore.register({ name, surname, email, password, kind, role })
+  res.status(201).json({ user: authStore.publicUser(account) })
 })
 
 router.get('/auth/accounts', (req, res) => {
@@ -103,6 +107,7 @@ router.get('/auth/accounts', (req, res) => {
     recruiters: store.listRecruiters(),
     candidates: store.listCandidates(),
     admins: store.getTables().itAdmin,
+    accounts: authStore.listAccountSummaries(),
   })
 })
 

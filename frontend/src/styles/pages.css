@@ -813,6 +813,60 @@
   align-items: start;
 }
 
+/* T10.2 — every dashboard frame keeps its own scroll panel. The page stays
+   put and the reader scrolls inside the frame instead of scrolling down the
+   whole dashboard to reach the next one. */
+.dashgrid > .stack {
+  min-width: 0;
+}
+
+.page--dashboard {
+  padding-bottom: 24px;
+}
+
+.dashgrid .card {
+  display: flex;
+  flex-direction: column;
+  max-height: clamp(190px, 28vh, 300px);
+  min-height: 0;
+  overflow: hidden;
+}
+
+.dashgrid .card > .card__head {
+  flex: none;
+}
+
+.dashgrid .card > .chart,
+.dashgrid .card > .card__body,
+.dashgrid .card > .hbars {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(16, 24, 34, 0.22) transparent;
+}
+
+.dashgrid .card > .chart::-webkit-scrollbar,
+.dashgrid .card > .card__body::-webkit-scrollbar,
+.dashgrid .card > .hbars::-webkit-scrollbar {
+  width: 8px;
+}
+
+.dashgrid .card > .chart::-webkit-scrollbar-thumb,
+.dashgrid .card > .card__body::-webkit-scrollbar-thumb,
+.dashgrid .card > .hbars::-webkit-scrollbar-thumb {
+  background: rgba(16, 24, 34, 0.22);
+  border-radius: 999px;
+}
+
+/* The rules table keeps its header visible while the rows scroll. */
+.dashgrid .card .table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
 .chart {
   padding: 16px 18px 12px;
 }

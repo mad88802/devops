@@ -52,6 +52,15 @@ Demo data lives in memory and is reseeded on every API start. You can also reset
 curl -X POST http://localhost:4000/api/dev/reset
 ```
 
+### Accounts
+
+The account store starts **empty**: there are no example accounts in the
+interface. Open `/login?mode=signup`, create a recruiter, candidate or IT admin
+account, then sign in with it.
+
+Accounts are written to `server/data/accounts.json` (git-ignored) as a scrypt
+hash with a random salt. Delete that file to reset the account store.
+
 ---
 
 ## 2. Architecture
@@ -219,8 +228,9 @@ Shared, task-agnostic code stays in `src/`:
 
 | Method | Route | Used by |
 |---|---|---|
-| POST | `/api/auth/login` | login |
-| GET | `/api/auth/accounts` | login demo accounts |
+| POST | `/api/auth/login` | sign-in (`{ email, password }`) |
+| POST | `/api/auth/register` | sign-up (persistent account) |
+| GET | `/api/auth/accounts` | account summaries (never hashes) |
 | GET | `/api/postings?q=&status=&sort=&page=&limit=` | T7.1 list/search, T7.2 filter |
 | GET | `/api/postings/:id` | T5.1 result page |
 | POST | `/api/postings` | T4.3 form save |
@@ -268,8 +278,14 @@ Run `npm run build` first; it must finish without errors.
 
 Then `npm run dev` and verify:
 
+0. **Home / auth** — open `/`:
+   - the public home page is shown (hero, verdict card, how it works);
+   - "Get started" opens `/login?mode=signup`;
+   - create a recruiter, candidate or IT admin account, sign out, sign in again;
+   - no example account, demo button or prefilled credential is visible.
 1. **T4.x** — open `/recruiter/postings/new`:
-   - submit with empty required fields → inline errors;
+   - submit with empty required fields → the notice names every missing field;
+     clicking a name scrolls to it and focuses the input;
    - toggle fee/salary dependent fields → hidden fields disappear;
    - save and check → posting is created, rule preview matches the result page.
 2. **T5.x** — open a created posting:
@@ -298,7 +314,7 @@ curl "http://localhost:4000/api/postings?q=data&status=S"
 
 ## 9. Azure DevOps
 
-- Organization/project/repo: `BNKteam / PO_G12 / DEVOPS_G12_WEB-APP`.
+- Organization/project/repo: `BNKteam / PO_G12 / DEVOPS_G12_FAKE_POSTING`.
 - The frontend app is stored under `frontend/` in that repository.
 - Integration base branch: `feature/frontend-integration`.
 - Each lab task has its own `T#.#` branch and pull request, stacked in dependency
@@ -317,4 +333,5 @@ curl "http://localhost:4000/api/postings?q=data&status=S"
 | API calls return 404 | make sure `npm run dev` started both processes |
 | Empty dashboard | reset demo data via `POST /api/dev/reset` |
 | Build fails on an import | check the task folder path in the task's README; shims under `src/` should point there |
-| Wrong role pages | sign out and use the demo accounts on `/login` |
+| Cannot sign in | create the first account on `/login?mode=signup`; delete `server/data/accounts.json` to start over |
+| Wrong role pages | sign out and sign in with an account of the right role |

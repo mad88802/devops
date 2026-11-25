@@ -24,6 +24,7 @@ import { Recruiters } from './pages/admin/Recruiters.jsx'
 import { Rules } from './pages/admin/Rules.jsx'
 import { Browse } from './pages/candidate/Browse.jsx'
 import { PostingView } from './pages/candidate/PostingView.jsx'
+import { Home } from './pages/Home.jsx'
 import { Login } from './pages/Login.jsx'
 import { Dashboard } from './pages/recruiter/Dashboard.jsx'
 import { Inbox } from './pages/recruiter/Inbox.jsx'
@@ -36,11 +37,6 @@ function Shield({ kind, children }) {
   if (!user) return <Navigate to="/login" replace />
   if (kind && user.kind !== kind) return <Navigate to={homeFor(user)} replace />
   return children
-}
-
-function HomeRedirect() {
-  const { user } = useAuth()
-  return <Navigate to={homeFor(user)} replace />
 }
 
 function NotFound() {
@@ -68,6 +64,8 @@ export default function App() {
         <ToastProvider>
           <BrowserRouter>
             <Routes>
+              {/* Public pages: home first, sign-in / sign-up next. */}
+              <Route path="/" element={<Home />} />
               <Route path="/login" element={<Login />} />
 
               <Route
@@ -77,8 +75,6 @@ export default function App() {
                   </Shield>
                 }
               >
-                <Route path="/" element={<HomeRedirect />} />
-
                 <Route path="/recruiter" element={<Navigate to="/recruiter/inbox" replace />} />
                 {/* T7.1 / T7.2 — posting list, search and status filter. */}
                 <Route

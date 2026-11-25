@@ -8,7 +8,7 @@ import { useI18n } from '../i18n/index.jsx'
 import { Icon } from './Icon.jsx'
 
 // T7.1 — pagination lives in its task folder; re-export for existing imports.
-export { Pagination } from './Pagination.jsx'
+export { Pagination } from '../../T7.1/Pagination.jsx'
 
 export function Tabs({ tabs, value, onChange }) {
   return (

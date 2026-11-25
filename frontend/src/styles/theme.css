@@ -1,0 +1,320 @@
+/* ==========================================================================
+   Application skin — the sign-in page, extended to every screen.
+   Imported last so it can refine the base shell without rewriting it.
+   ========================================================================== */
+
+/* The page itself is the blue gradient of the sign-in card. */
+body {
+  background:
+    radial-gradient(circle at 16% 6%, rgba(96, 166, 255, 0.55) 0%, transparent 44%),
+    radial-gradient(circle at 88% 94%, rgba(5, 38, 110, 0.75) 0%, transparent 50%),
+    linear-gradient(135deg, #1a74ef 0%, #0b56c9 48%, #073c98 100%);
+  background-attachment: fixed;
+}
+
+.shell,
+.home,
+.authpage {
+  position: relative;
+  z-index: 1;
+}
+
+.authpage {
+  background: transparent;
+}
+
+/* ------------------------------- side rail ------------------------------- */
+
+.rail {
+  background: linear-gradient(
+    158deg,
+    rgba(31, 124, 240, 0.95) 0%,
+    rgba(11, 86, 201, 0.97) 58%,
+    rgba(8, 67, 164, 0.99) 100%
+  );
+  border-right: 1px solid rgba(255, 255, 255, 0.14);
+  color: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(8px);
+  overflow: hidden;
+}
+
+/* Small static balls, only inside the menu rail. */
+.rail__ball {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+  background: radial-gradient(
+    circle at 36% 32%,
+    rgba(255, 255, 255, 0.34) 0%,
+    rgba(120, 190, 255, 0.2) 46%,
+    rgba(8, 67, 164, 0) 70%
+  );
+}
+
+.rail__ball--1 {
+  left: 16px;
+  bottom: 92px;
+  width: 132px;
+  height: 132px;
+}
+
+.rail__ball--2 {
+  top: 27%;
+  right: 14px;
+  width: 58px;
+  height: 58px;
+  opacity: 0.7;
+}
+
+.rail__ball--3 {
+  top: 44%;
+  left: 26px;
+  width: 86px;
+  height: 86px;
+  opacity: 0.55;
+}
+
+.rail__ball--4 {
+  right: 22px;
+  bottom: 30%;
+  width: 44px;
+  height: 44px;
+  opacity: 0.5;
+}
+
+.rail__ball--5 {
+  top: 12%;
+  left: 30px;
+  width: 34px;
+  height: 34px;
+  opacity: 0.45;
+}
+
+.rail > *:not(.rail__ball) {
+  position: relative;
+  z-index: 1;
+}
+
+/* Drag this edge to resize the rail. */
+.rail > .rail__resizer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 8px;
+  height: 100%;
+  z-index: 5;
+  cursor: col-resize;
+  background: transparent;
+}
+
+.rail > .rail__resizer::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: 2px;
+  width: 2px;
+  height: 38px;
+  margin-top: -19px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.22);
+  transition: background 0.15s var(--ease), height 0.15s var(--ease);
+}
+
+.rail > .rail__resizer:hover::after,
+.rail > .rail__resizer:active::after {
+  height: 56px;
+  margin-top: -28px;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+body.is-resizing,
+body.is-resizing * {
+  cursor: col-resize !important;
+  user-select: none !important;
+}
+
+@media (max-width: 900px) {
+  .rail__ball,
+  .rail > .rail__resizer {
+    display: none;
+  }
+}
+
+.navgroup__label {
+  color: rgba(255, 255, 255, 0.48);
+}
+
+.navlink {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.navlink:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.navlink.is-active {
+  background: rgba(255, 255, 255, 0.17);
+  color: #fff;
+}
+
+.navlink.is-active::before {
+  background: #fff;
+}
+
+.rail__foot {
+  border-top-color: rgba(255, 255, 255, 0.14);
+}
+
+.rail__user span {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.avatar {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.brand__sub {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+/* ------------------------------ main panel ------------------------------- */
+
+.main {
+  background: rgba(247, 250, 255, 0.93);
+  backdrop-filter: blur(18px) saturate(140%);
+}
+
+.topbar {
+  height: 58px;
+  background: rgba(255, 255, 255, 0.74);
+  backdrop-filter: blur(14px) saturate(150%);
+  border-bottom: 1px solid rgba(16, 24, 34, 0.07);
+}
+
+.topbar__nav {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: none;
+}
+
+/* Hide / show the menu rail. */
+.shell--rail-hidden {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.shell--rail-hidden .rail {
+  display: none;
+}
+
+.langtoggle {
+  border-radius: 8px;
+  border-color: rgba(16, 24, 34, 0.12);
+}
+
+.langtoggle button[aria-pressed='true'] {
+  background: var(--cobalt);
+  color: #fff;
+}
+
+/* ------------------------------ content cards ---------------------------- */
+
+.card {
+  border-radius: 14px;
+  border: 1px solid rgba(16, 24, 34, 0.07);
+  box-shadow: 0 18px 40px -30px rgba(16, 24, 34, 0.35);
+}
+
+.page-head h1 {
+  font-size: clamp(24px, 2.6vw, 31px);
+  letter-spacing: -0.035em;
+}
+
+.page-head p {
+  font-size: 14px;
+}
+
+/* -------------------------------- controls ------------------------------- */
+
+.input,
+.select,
+.textarea {
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: #f2f5fa;
+  font-size: 13.5px;
+}
+
+.input:focus,
+.select:focus,
+.textarea:focus {
+  background: #fff;
+  border-color: var(--cobalt);
+  box-shadow: 0 0 0 3px var(--cobalt-tint);
+}
+
+.input[aria-invalid='true'],
+.select[aria-invalid='true'],
+.textarea[aria-invalid='true'] {
+  background: var(--fake-tint);
+  border-color: #e3b4b0;
+  box-shadow: 0 0 0 3px rgba(161, 20, 28, 0.08);
+}
+
+.textarea {
+  height: auto;
+  min-height: 96px;
+  padding: 10px 12px;
+}
+
+.select {
+  padding-right: 30px;
+}
+
+.btn {
+  height: 36px;
+  border-radius: 8px;
+}
+
+.btn--primary {
+  background: linear-gradient(135deg, #1f7cf0 0%, #0b56c9 100%);
+  box-shadow: 0 10px 22px -14px rgba(11, 86, 201, 0.8);
+}
+
+.btn--primary:hover {
+  background: linear-gradient(135deg, #2b86f5 0%, #0d5fd8 100%);
+}
+
+.btn--secondary {
+  background: #fff;
+  border-color: rgba(16, 24, 34, 0.14);
+}
+
+.btn--secondary:hover {
+  border-color: var(--cobalt);
+  background: var(--cobalt-tint);
+}
+
+.segmented {
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: #f2f5fa;
+}
+
+.table th {
+  background: #f1f6ff;
+}
+
+/* The home page uses the translucent card surface, like the sign-in panel. */
+.home {
+  background: rgba(255, 255, 255, 0.93);
+  backdrop-filter: blur(18px) saturate(130%);
+}
+
+.home__brand .brand__mark i {
+  background: var(--cobalt);
+}
+
