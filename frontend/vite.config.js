@@ -5,6 +5,9 @@ import react from '@vitejs/plugin-react'
 // on port 5000 (or to the Node mock API on port 4000 if configured via VITE_API_BASE_URL).
 export default defineConfig({
   plugins: [react()],
+  resolve: {
+    preserveSymlinks: true,
+  },
   server: {
     port: 5173,
     proxy: {
