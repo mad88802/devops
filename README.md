@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Fake Job Posting Detection System (Verdict)
 
 DevOps Academic Project - Group 12 (ING4 Semester 7)
@@ -277,3 +278,6 @@ npm run build
 3. Commit with semantic messages (`feat: ...`, `fix: ...`, `docs: ...`).
 4. Push and open a Pull Request against `main`.
 5. Ensure all conflicts are resolved prior to merge approval.
+=======
+# devops
+>>>>>>> de94c4e7dd010e9b23f0b2b9f91eee51211fcc61
