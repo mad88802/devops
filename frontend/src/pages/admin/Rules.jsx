@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { STATUS_META } from '../../../shared/fields.js'
-import { OPERATORS } from '../../../shared/rules.js'
+import { STATUS_META } from '../../lib/fields.js'
+import { OPERATORS } from '../../lib/rules.js'
 import { api } from '../../api/client.js'
 import { Icon } from '../../components/Icon.jsx'
 import { ActionTokens } from '../../components/Ledger.jsx'

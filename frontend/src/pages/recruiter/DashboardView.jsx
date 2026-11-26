@@ -44,7 +44,7 @@ export function Dashboard({ weeks = 9, companyId = '', companyName = null, heade
   const maxRuleCount = data ? Math.max(1, ...data.rules.map((row) => row.count)) : 1
 
   return (
-    <div className="page">
+    <div className="page page--dashboard">
       <div className="page-head">
         <div className="page-head__text">
           <h1>{t('dash.title')}</h1>

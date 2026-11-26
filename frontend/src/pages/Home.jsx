@@ -10,7 +10,7 @@ import { Icon } from '../components/Icon.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import { LANGUAGES, useI18n } from '../i18n/index.jsx'
 import { homeFor } from '../lib/routes.js'
-import { RULE_BY_CODE } from '../../shared/rules.js'
+import { RULE_BY_CODE } from '../lib/rules.js'
 
 function Brand() {
   const { t } = useI18n()
@@ -39,8 +39,6 @@ export function Home() {
   const { user } = useAuth()
   const { t, lang, setLang } = useI18n()
 
-  if (user) return <Navigate to={homeFor(user)} replace />
-
   const rule = RULE_BY_CODE.R1
 
   return (
@@ -67,12 +65,27 @@ export function Home() {
             ))}
           </div>
 
-          <Link className="btn btn--ghost btn--sm" to="/login">
-            {t('home.nav.signin')}
-          </Link>
-          <Link className="btn btn--primary btn--sm" to="/login?mode=signup">
-            {t('home.nav.start')}
-          </Link>
+          {user ? (
+            <>
+              <Link className="btn btn--secondary btn--sm" to={homeFor(user)}>
+                <Icon name="user" size={14} />
+                {user.fullName || user.name || t('nav.inbox')}
+              </Link>
+              <Link className="btn btn--primary btn--sm" to={homeFor(user)}>
+                {t('home.hero.goToWorkspace')}
+                <Icon name="arrowRight" size={14} />
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link className="btn btn--ghost btn--sm" to="/login">
+                {t('home.nav.signin')}
+              </Link>
+              <Link className="btn btn--primary btn--sm" to="/login?mode=signup">
+                {t('home.nav.start')}
+              </Link>
+            </>
+          )}
         </div>
       </header>
 
@@ -91,13 +104,27 @@ export function Home() {
             <p className="home__hero-body">{t('home.hero.body')}</p>
 
             <div className="home__hero-actions">
-              <Link className="btn btn--primary" to="/login?mode=signup">
-                {t('home.hero.primary')}
-                <Icon name="arrowRight" size={15} />
-              </Link>
-              <Link className="btn btn--secondary" to="/login">
-                {t('home.hero.secondary')}
-              </Link>
+              {user ? (
+                <>
+                  <Link className="btn btn--primary" to={homeFor(user)}>
+                    {t('home.hero.goToWorkspace')}
+                    <Icon name="arrowRight" size={15} />
+                  </Link>
+                  <Link className="btn btn--secondary" to="/login">
+                    {t('topbar.signOut')}
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <Link className="btn btn--primary" to="/login?mode=signup">
+                    {t('home.hero.primary')}
+                    <Icon name="arrowRight" size={15} />
+                  </Link>
+                  <Link className="btn btn--secondary" to="/login">
+                    {t('home.hero.secondary')}
+                  </Link>
+                </>
+              )}
             </div>
 
             <p className="home__hero-note">
@@ -200,8 +227,8 @@ export function Home() {
             <h2>{t('home.cta.title')}</h2>
             <p>{t('home.cta.body')}</p>
           </div>
-          <Link className="btn btn--primary" to="/login?mode=signup">
-            {t('home.cta.button')}
+          <Link className="btn btn--primary" to={user ? homeFor(user) : "/login?mode=signup"}>
+            {user ? t('home.hero.goToWorkspace') : t('home.cta.button')}
             <Icon name="arrowRight" size={15} />
           </Link>
         </section>

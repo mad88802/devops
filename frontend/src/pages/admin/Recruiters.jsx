@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { RECRUITER_ROLES } from '../../../shared/fields.js'
+import { RECRUITER_ROLES } from '../../lib/fields.js'
 import { api } from '../../api/client.js'
 import { DataTable } from '../../components/DataTable.jsx'
 import { FormField } from '../../components/Field.jsx'

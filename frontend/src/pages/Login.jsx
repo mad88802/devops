@@ -283,6 +283,44 @@ export function Login() {
                   {t('auth.signup')}
                 </button>
               </p>
+
+              <div style={{ marginTop: 18, paddingTop: 14, borderTop: '1px solid var(--border, rgba(0,0,0,0.08))', textAlign: 'center' }}>
+                <span className="tiny faint" style={{ display: 'block', marginBottom: 8 }}>
+                  {t('topbar.demo')}
+                </span>
+                <div style={{ display: 'flex', gap: 6, justifyContent: 'center', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    className="btn btn--ghost btn--sm"
+                    onClick={() => {
+                      setSigninField('email', 'amine.benkraouda@jobwatch.dz')
+                      setSigninField('password', 'demo1234')
+                    }}
+                  >
+                    Recruiter
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn--ghost btn--sm"
+                    onClick={() => {
+                      setSigninField('email', 'sofiane.hamidi@mail.dz')
+                      setSigninField('password', 'demo1234')
+                    }}
+                  >
+                    Candidate
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn--ghost btn--sm"
+                    onClick={() => {
+                      setSigninField('email', 'nadia.belkacem@jobwatch.dz')
+                      setSigninField('password', 'demo1234')
+                    }}
+                  >
+                    Admin
+                  </button>
+                </div>
+              </div>
             </form>
           ) : (
             <form className="authform" onSubmit={submitSignup} noValidate>

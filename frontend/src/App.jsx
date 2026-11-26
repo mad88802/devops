@@ -13,6 +13,7 @@
  * re-export the implementation from the matching `T#.#` task folder.
  */
 import { BrowserRouter, Link, Navigate, Route, Routes } from 'react-router-dom'
+import { ErrorBoundary } from './components/ErrorBoundary.jsx'
 import { Layout } from './components/Layout.jsx'
 import { Empty } from './components/Small.jsx'
 import { AuthProvider, useAuth } from './context/AuthContext.jsx'
@@ -37,6 +38,11 @@ function Shield({ kind, children }) {
   if (!user) return <Navigate to="/login" replace />
   if (kind && user.kind !== kind) return <Navigate to={homeFor(user)} replace />
   return children
+}
+
+function HomeRedirect() {
+  const { user } = useAuth()
+  return <Navigate to={homeFor(user)} replace />
 }
 
 function NotFound() {
@@ -71,10 +77,13 @@ export default function App() {
               <Route
                 element={
                   <Shield>
-                    <Layout />
+                    <ErrorBoundary>
+                      <Layout />
+                    </ErrorBoundary>
                   </Shield>
                 }
               >
+
                 <Route path="/recruiter" element={<Navigate to="/recruiter/inbox" replace />} />
                 {/* T7.1 / T7.2 — posting list, search and status filter. */}
                 <Route

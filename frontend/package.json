@@ -5,7 +5,8 @@
   "description": "Verdict — Fake Job Posting Detection. React front-end + Node mock API for LAB PRJ12 (Team 12).",
   "type": "module",
   "scripts": {
-    "dev": "concurrently -n api,web -c cyan,magenta \"npm:dev:api\" \"npm:dev:web\"",
+    "dev": "vite",
+    "dev:mock": "concurrently -n api,web -c cyan,magenta \"npm:dev:api\" \"npm:dev:web\"",
     "dev:api": "node --watch server/index.js",
     "dev:web": "vite",
     "build": "vite build",

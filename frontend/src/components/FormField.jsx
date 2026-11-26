@@ -124,7 +124,10 @@ export function FormField({ field, value, onChange, error, disabled, className }
   const isSegmented = field.type === 'coded'
 
   return (
-    <div className={`field${field.wide ? ' field--wide' : ''}${className ? ` ${className}` : ''}`}>
+    <div
+      id={`field-${field.key.replace(/\./g, '-')}`}
+      className={`field${field.wide ? ' field--wide' : ''}${className ? ` ${className}` : ''}`}
+    >
       {isSegmented ? (
         <span className="field__label">
           {t(field.label)}

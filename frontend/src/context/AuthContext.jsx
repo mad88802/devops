@@ -17,7 +17,7 @@ function readStoredUser() {
   }
 }
 
-function storeUser(user, remember) {
+function storeUser(user, remember = true) {
   localStorage.removeItem(STORAGE_KEY)
   sessionStorage.removeItem(STORAGE_KEY)
   const storage = remember ? localStorage : sessionStorage
@@ -27,7 +27,19 @@ function storeUser(user, remember) {
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(readStoredUser)
 
-  const login = useCallback(async (credentials, { remember = true } = {}) => {
+  const login = useCallback(async (roleOrCredentials, userIdOrOptions) => {
+    let credentials
+    let remember = true
+
+    if (typeof roleOrCredentials === 'object' && roleOrCredentials !== null) {
+      credentials = roleOrCredentials
+      if (userIdOrOptions && typeof userIdOrOptions === 'object' && 'remember' in userIdOrOptions) {
+        remember = Boolean(userIdOrOptions.remember)
+      }
+    } else {
+      credentials = { role: roleOrCredentials, userId: userIdOrOptions }
+    }
+
     const response = await api.login(credentials)
     storeUser(response.user, remember)
     setUser(response.user)

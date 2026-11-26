@@ -669,21 +669,6 @@ export function getCandidate(id) {
   return tables.candidate.find((c) => c.id === Number(id)) ?? null
 }
 
-/**
- * Called by server/authStore.js when a candidate signs up, so reports can be
- * attributed to a real candidate row.
- */
-export function createCandidate(data) {
-  const candidate = {
-    id: nextId(tables.candidate),
-    name: data.name,
-    surname: data.surname,
-    email: data.email,
-  }
-  tables.candidate.push(candidate)
-  return candidate
-}
-
 /* ------------------------------------------------------------------ */
 /* Derived statistics (US10)                                           */
 /* ------------------------------------------------------------------ */

@@ -1,36 +1,24 @@
 /**
- * API facade.
- *
- * The generic fetch wrapper, query builder and `ApiError` live in `./core.js`.
- * Each task contributes its own methods and they are assembled here so pages
- * keep a single `api` object:
- *
- *   T4.3  postings.create / postings.check .... T4.3/postingApi.js
- *   T7.1  postings.list ....................... T7.1/postingListApi.js
- *   T7.2  postings.list({ status }) ........... status query parameter
- *   T7.3  reports.create / reports.list ....... T7.3/reportApi.js
- *   T10.1 stats.summary / weekly / companies /
- *         rules / activity .................... T10.1/statsApi.js
- *
- * The bundled mock API is reached through the Vite proxy by default. Set
- * VITE_API_BASE_URL to another back-end and every screen keeps working as long
- * as the routes in README.md#6-api-surface are implemented.
+ * Consolidated API facade.
+ * Reads endpoints from the Flask backend (or mock API).
  */
-
 import { ApiError, BASE, query, request } from './core.js'
-import { createPosting, checkPosting } from '../../T4.3/postingApi.js'
-import { listPostings } from '../../T7.1/postingListApi.js'
-import { createReport, listReports } from '../../T7.3/reportApi.js'
-import { statsApi } from '../../T10.1/statsApi.js'
+import { createPosting, checkPosting, listPostings } from './postingApi.js'
+import { createReport, listReports } from './reportApi.js'
+import { statsApi } from './statsApi.js'
 
 export { ApiError }
 
 export const api = {
   baseUrl: BASE,
 
-  /** `{ email, password }` for a real account, `{ role }` for a demo shortcut. */
-  login(credentials = {}) {
-    return request('/auth/login', { method: 'POST', body: credentials })
+  /** `{ email, password }` for a real account, `{ role }` or `(role, userId)` for a shortcut. */
+  login(credentialsOrRole, userId) {
+    const body =
+      typeof credentialsOrRole === 'object' && credentialsOrRole !== null
+        ? credentialsOrRole
+        : { role: credentialsOrRole, userId }
+    return request('/auth/login', { method: 'POST', body })
   },
   register(body) {
     return request('/auth/register', { method: 'POST', body })
@@ -64,12 +52,10 @@ export const api = {
   },
 
   postings: {
-    // T7.1 search/pagination + T7.2 status filter are query parameters.
     list: listPostings,
     get(id) {
       return request(`/postings/${id}`)
     },
-    // T4.3 — form save/check methods live in T4.3/postingApi.js.
     create: createPosting,
     update(id, body) {
       return request(`/postings/${id}`, { method: 'PUT', body })
@@ -87,7 +73,6 @@ export const api = {
   },
 
   reports: {
-    // T7.3 — report API methods live in T7.3/reportApi.js.
     list: listReports,
     create: createReport,
   },
@@ -117,10 +102,6 @@ export const api = {
     return request(`/classifications${query({ limit })}`)
   },
 
-  /*
-   * T10.1 — statistics API methods live in T10.1/statsApi.js.
-   * T10.3 — every method takes optional params `{ weeks, companyId }`.
-   */
   stats: statsApi,
 
   rules() {
