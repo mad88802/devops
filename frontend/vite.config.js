@@ -5,6 +5,9 @@ import react from '@vitejs/plugin-react'
 // API on :4000. Point VITE_API_BASE_URL at the real back-end whenever it lands.
 export default defineConfig({
   plugins: [react()],
+  resolve: {
+    preserveSymlinks: true,
+  },
   server: {
     port: 5173,
     proxy: {
